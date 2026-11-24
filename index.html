@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apotek POS — Interactive Demo Preview &amp; Full Blueprint</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #eef3f7;
+      background-image:
+        radial-gradient(at 8% 0%, rgba(13, 148, 136, 0.10) 0px, transparent 48%),
+        radial-gradient(at 92% 6%, rgba(2, 132, 199, 0.08) 0px, transparent 52%),
+        radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.04) 0px, transparent 55%);
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .glass-bar {
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(14px);
+    }
+
+    @keyframes panelReveal {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes modalReveal {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes toastEnter {
+      from {
+        opacity: 0;
+        transform: translateX(24px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes popScale {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes shiftBannerSlide {
+      0% { transform: translate(-50%, -140%); opacity: 0; }
+      12% { transform: translate(-50%, 0); opacity: 1; }
+      88% { transform: translate(-50%, 0); opacity: 1; }
+      100% { transform: translate(-50%, -140%); opacity: 0; }
+    }
+
+    @keyframes laserSweep {
+      0%, 100% { transform: translateY(4px); opacity: 0.45; }
+      50% { transform: translateY(84px); opacity: 1; }
+    }
+
+    .animate-panel {
+      animation: panelReveal 0.3s var(--ease-spring) both;
+    }
+
+    .animate-modal {
+      animation: modalReveal 0.28s var(--ease-spring) both;
+    }
+
+    .animate-toast {
+      animation: toastEnter 0.28s var(--ease-spring) both;
+    }
+
+    .animate-pop {
+      animation: popScale 0.36s var(--ease-bounce);
+    }
+
+    .animate-shift-banner {
+      animation: shiftBannerSlide 4.2s var(--ease-spring) forwards;
+    }
+
+    .qr-laser-line {
+      animation: laserSweep 2.1s ease-in-out infinite;
+    }
+
+    .pos-card {
+      transition: transform 0.22s var(--ease-spring), box-shadow 0.22s var(--ease-spring), border-color 0.2s ease;
+    }
+
+    .pos-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 26px -12px rgba(15, 23, 42, 0.16);
+    }
+
+    .receipt-sheet {
+      font-family: 'JetBrains Mono', monospace;
+      background: #fffef8;
+      box-shadow: 0 16px 32px -10px rgba(15, 23, 42, 0.22);
+      transition: width 0.25s var(--ease-spring);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #receiptPrintBox, #receiptPrintBox * {
+        visibility: visible;
+      }
+      #receiptPrintBox {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col tabular-nums selection:bg-teal-600 selection:text-white">
+
+  <!-- Animated Auto-Shift Transition Banner -->
+  <div id="shiftAlertBanner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-xl pointer-events-none">
+    <div class="bg-gradient-to-r from-teal-700 via-emerald-700 to-cyan-800 text-white px-4 py-3 rounded-2xl shadow-2xl border border-teal-300/40 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-emerald-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-200">Pergantian Shift Otomatis</div>
+          <div id="shiftAlertBannerText" class="text-xs sm:text-sm font-bold">Kasir berganti otomatis sesuai jadwal shift</div>
+        </div>
+      </div>
+      <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-white/20 text-white shrink-0">AUTO-SHIFT</span>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastStack" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- ==================== TOP BAR ==================== -->
+  <header class="glass-bar text-white border-b border-slate-800/90 sticky top-0 z-30">
+    <div class="max-w-[1680px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+
+      <!-- Left: Demo Badge + Branch Switcher + Client Mode Toggle -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-2 bg-gradient-to-r from-teal-500/20 to-cyan-500/15 border border-teal-400/35 px-3 py-1.5 rounded-xl">
+          <div class="w-7 h-7 rounded-lg bg-teal-400 text-slate-950 flex items-center justify-center font-black shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-extrabold tracking-wide text-teal-300">APOTEK POS</span>
+              <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-amber-400 text-slate-950">Demo / Preview</span>
+            </div>
+            <div id="clientModeHint" class="text-[10px] text-slate-300 font-medium">Tablet PWA • Layar Sentuh &amp; Web Print</div>
+          </div>
+        </div>
+
+        <!-- Branch Switcher -->
+        <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 rounded-xl px-2.5 py-1.5">
+          <svg class="w-3.5 h-3.5 text-teal-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <select id="topBranchSelect" class="bg-transparent text-xs sm:text-sm font-bold text-white focus:outline-none cursor-pointer">
+            <option value="BR-UTAMA" class="bg-slate-900">Cabang Utama</option>
+            <option value="BR-KRG" class="bg-slate-900">Cabang Kranggan</option>
+            <option value="BR-TMG" class="bg-slate-900">Cabang Temanggung</option>
+          </select>
+        </div>
+
+        <!-- Client Mode Toggle (Tablet PWA vs Windows .exe) -->
+        <div class="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700 text-xs">
+          <button id="btnModeTablet" type="button" class="px-2.5 py-1 rounded-lg font-bold bg-teal-600 text-white transition cursor-pointer">
+            Tablet PWA
+          </button>
+          <button id="btnModeWindows" type="button" class="px-2.5 py-1 rounded-lg font-bold text-slate-300 hover:text-white transition cursor-pointer">
+            Windows .exe
+          </button>
+        </div>
+      </div>
+
+      <!-- Center: Auto-Active Cashier + Simulated Shift Time + Quick Shift Buttons + PIN Override -->
+      <div class="flex flex-wrap items-center gap-2 bg-slate-800/90 border border-slate-700/80 px-3 py-1.5 rounded-xl">
+        <div id="headerCashierBox" class="flex items-center gap-2">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+          </span>
+          <div class="text-xs">
+            <span class="text-slate-400">Kasir Aktif:</span>
+            <span id="headerCashierName" class="font-extrabold text-white ml-1">-</span>
+            <span id="headerShiftBadge" class="ml-1.5 px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">-</span>
+          </div>
+        </div>
+
+        <div class="h-4 w-px bg-slate-700 hidden sm:block"></div>
+
+        <div class="flex items-center gap-1.5 text-xs">
+          <input id="simClockInput" type="time" value="08:30" class="bg-slate-900 border border-slate-600 rounded-lg px-2 py-0.5 text-xs font-mono font-bold text-amber-300 focus:outline-none focus:border-teal-400 cursor-pointer" title="Ubah jam simulasi untuk menguji pergantian shift otomatis" />
+          <button type="button" data-jump-time="08:30" class="shift-jump-btn px-2 py-0.5 rounded bg-slate-700/90 hover:bg-slate-600 text-[10px] font-bold text-slate-200 transition cursor-pointer">Pagi</button>
+          <button type="button" data-jump-time="15:00" class="shift-jump-btn px-2 py-0.5 rounded bg-slate-700/90 hover:bg-slate-600 text-[10px] font-bold text-slate-200 transition cursor-pointer">Siang</button>
+          <button type="button" data-jump-time="21:30" class="shift-jump-btn px-2 py-0.5 rounded bg-slate-700/90 hover:bg-slate-600 text-[10px] font-bold text-slate-200 transition cursor-pointer">Malam</button>
+          <button id="openPinOverrideBtn" type="button" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[11px] font-bold text-amber-200 border border-amber-400/25 transition cursor-pointer">
+            PIN Override
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Trigger Ganti Shift & Backup -->
+      <div>
+        <button id="triggerShiftBackupBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-sm transition active:scale-95 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Trigger Ganti Shift &amp; Backup</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-slate-950/80 border-t border-slate-800/80">
+      <div id="mainTabBar" class="max-w-[1680px] mx-auto px-3 sm:px-5 flex items-center gap-1 overflow-x-auto py-1.5 text-xs sm:text-sm">
+        <button type="button" data-tab="kasir" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Kasir POS</span>
+          <span id="cartCountPill" class="px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 text-white font-extrabold">0</span>
+        </button>
+        <button type="button" data-tab="jadwal" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Jadwal Shift</span>
+        </button>
+        <button type="button" data-tab="cabang" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Multi-Cabang</span>
+        </button>
+        <button type="button" data-tab="wa" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>WA Baileys</span>
+          <span id="waOnlinePill" class="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/25 text-emerald-300 font-extrabold">0</span>
+        </button>
+        <button type="button" data-tab="backup" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Backup Shift</span>
+        </button>
+        <button type="button" data-tab="laporan" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Laporan &amp; FEFO</span>
+        </button>
+        <button type="button" data-tab="blueprint" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Full Blueprint</span>
+        </button>
+        <button type="button" data-tab="dump" class="app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer">
+          <span>Data Dummy (Demo)</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-[1680px] w-full mx-auto p-3 sm:p-5">
+
+    <!-- 1. KASIR POS -->
+    <section id="panel-kasir" class="app-tab-panel animate-panel grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <div class="lg:col-span-7 space-y-4">
+        <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 shadow-sm space-y-3">
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+              </svg>
+              <input id="posSearchInput" type="text" placeholder="Scan barcode/QR atau cari obat (Paracetamol, Amoxicillin, OBH, Racikan)..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+            </div>
+            <button id="openRacikanBtn" type="button" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer">
+              <span>+ Builder Racikan</span>
+            </button>
+          </div>
+
+          <!-- Categories: Semua, Bebas, Bebas Terbatas, Keras/Resep, Racikan -->
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div id="posCategoryBar" class="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <button type="button" data-cat="Semua" class="pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer">Semua</button>
+              <button type="button" data-cat="Bebas" class="pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer">Bebas</button>
+              <button type="button" data-cat="Bebas Terbatas" class="pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer">Bebas Terbatas</button>
+              <button type="button" data-cat="Keras/Resep" class="pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer">Keras/Resep</button>
+              <button type="button" data-cat="Racikan" class="pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer">Racikan</button>
+            </div>
+            <span class="text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">
+              FEFO Nearest Expiry Aktif
+            </span>
+          </div>
+        </div>
+
+        <div id="posCatalogGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- Cart & Checkout -->
+      <div class="lg:col-span-5 bg-white/95 rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col">
+        <div class="p-4 bg-gradient-to-r from-slate-50 to-teal-50/50 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h2 class="font-extrabold text-slate-900 text-base">Keranjang Kasir</h2>
+            <p class="text-xs text-slate-500">Multi-UOM, Batch FEFO, Resep &amp; Racikan</p>
+          </div>
+          <button id="clearCartBtn" type="button" class="text-xs font-bold text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition cursor-pointer">
+            Kosongkan
+          </button>
+        </div>
+
+        <!-- Prescription Info -->
+        <div class="px-4 py-2.5 border-b border-slate-100 bg-amber-50/70 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer select-none">
+              <input id="rxEnabledCheck" type="checkbox" class="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+              <span>Informasi Resep (Dokter, Pasien, Aturan Pakai)</span>
+            </label>
+            <span id="rxActiveTag" class="hidden text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">RESEP</span>
+          </div>
+          <div id="rxFieldsWrap" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input id="rxDokterField" type="text" placeholder="Dokter (dr. Sari)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white" />
+            <input id="rxPasienField" type="text" placeholder="Nama Pasien" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white" />
+            <input id="rxAturanField" type="text" placeholder="Aturan pakai (3x1)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white" />
+          </div>
+        </div>
+
+        <div id="cartListContainer" class="p-4 space-y-2.5 max-h-[360px] overflow-y-auto flex-1"></div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+          <div class="space-y-1 text-sm">
+            <div class="flex justify-between text-slate-600">
+              <span>Subtotal Obat &amp; Bahan</span>
+              <span id="cartSubTotalVal" class="font-bold">Rp 0</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+              <span>Biaya Embalase / Racik</span>
+              <span id="cartEmbalaseVal" class="font-bold">Rp 0</span>
+            </div>
+            <div class="flex justify-between text-base font-black text-slate-900 pt-1.5 border-t border-slate-200">
+              <span>Total Tagihan</span>
+              <span id="cartGrandTotalVal" class="text-teal-700 text-lg">Rp 0</span>
+            </div>
+          </div>
+
+          <button id="openPayModalBtn" type="button" class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-sm shadow-md transition active:scale-[0.99] cursor-pointer">
+            Bayar (Tunai / EDC / Tripay / Midtrans)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. JADWAL SHIFT -->
+    <section id="panel-jadwal" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">Matriks Jadwal Shift Otomatis (Owner / Admin)</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Saat jam shift berganti, kasir aktif otomatis berganti di layar POS &amp; struk tanpa login manual ulang.</p>
+          </div>
+          <div class="text-xs font-extrabold bg-teal-50 text-teal-800 border border-teal-200 px-3 py-2 rounded-xl">
+            Cabang: <span id="jadwalBranchName">Cabang Utama</span>
+          </div>
+        </div>
+
+        <form id="addShiftScheduleForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <input id="newShiftTitle" type="text" required placeholder="Nama Shift (mis. Shift Malam)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white" />
+          <input id="newShiftCashier" type="text" required placeholder="Nama Kasir (mis. Dimas P.)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white" />
+          <input id="newShiftDays" type="text" required value="Senin - Minggu" placeholder="Hari (Senin - Minggu)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white" />
+          <input id="newShiftStart" type="time" required value="21:00" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white font-mono" />
+          <input id="newShiftEnd" type="time" required value="23:59" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white font-mono" />
+          <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition active:scale-95 cursor-pointer">
+            + Tambah Jadwal
+          </button>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 bg-slate-50">
+                <th class="py-2.5 px-3 font-bold">Shift</th>
+                <th class="py-2.5 px-3 font-bold">Kasir Otomatis</th>
+                <th class="py-2.5 px-3 font-bold">Hari Operasional</th>
+                <th class="py-2.5 px-3 font-bold">Jam</th>
+                <th class="py-2.5 px-3 font-bold">Status</th>
+                <th class="py-2.5 px-3 font-bold text-right">Hapus</th>
+              </tr>
+            </thead>
+            <tbody id="shiftMatrixTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+
+        <!-- PIN Override Audit Log -->
+        <div class="pt-2 border-t border-slate-100">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Log PIN Override Kasir Darurat</h3>
+          <div id="pinOverrideLogBox" class="space-y-1.5 text-xs"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. MULTI-CABANG -->
+    <section id="panel-cabang" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-5 space-y-3">
+          <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 shadow-sm">
+            <h2 class="text-base font-extrabold text-slate-900 mb-3">Ringkasan Cabang Terisolasi</h2>
+            <div id="branchSummaryCards" class="space-y-2.5"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-7 bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm space-y-4">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900">Mutasi Stok Antar Cabang</h2>
+            <p class="text-xs text-slate-500">Transfer stok antar cabang dengan pembaruan stok dan FEFO batch secara langsung.</p>
+          </div>
+
+          <form id="mutasiStockForm" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Cabang Asal</label>
+              <select id="mutasiFromSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Cabang Tujuan</label>
+              <select id="mutasiToSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Obat</label>
+              <select id="mutasiDrugSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Jumlah Unit</label>
+              <input id="mutasiQtyInput" type="number" min="1" value="15" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white font-bold" />
+            </div>
+            <div class="sm:col-span-2 flex justify-end">
+              <button type="submit" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm transition active:scale-95 cursor-pointer">
+                Proses Mutasi Stok
+              </button>
+            </div>
+          </form>
+
+          <div>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Riwayat Mutasi Antar Cabang</h3>
+            <div id="mutasiHistoryList" class="space-y-2 max-h-[260px] overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. WA BAILEYS -->
+    <section id="panel-wa" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">Halaman Perangkat WA Baileys</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Tambah perangkat via QR / Pairing Code, kelola status koneksi, dan kirim pesan uji notifikasi apotek.</p>
+          </div>
+          <button id="openAddWaModalBtn" type="button" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow transition active:scale-95 self-start sm:self-auto cursor-pointer">
+            + Tambah Perangkat
+          </button>
+        </div>
+
+        <div id="waDevicesCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
+
+        <!-- Send Test Message Form -->
+        <form id="sendWaTestForm" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="sm:col-span-3">
+            <input id="waTargetPhoneInput" type="text" required value="6281234567890" placeholder="No. WA (628...)" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white font-mono" />
+          </div>
+          <div class="sm:col-span-6">
+            <input id="waMessageTextInput" type="text" required value="Info Apotek: Obat racikan Anda sudah siap diambil di kasir." placeholder="Isi pesan notifikasi / struk / reminder..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white" />
+          </div>
+          <div class="sm:col-span-3">
+            <button type="submit" class="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition active:scale-95 cursor-pointer">
+              Kirim Pesan Uji
+            </button>
+          </div>
+        </form>
+
+        <div>
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Log Pengiriman Pesan WA</h3>
+          <div id="waDeliveryLogs" class="divide-y divide-slate-100 border border-slate-200 rounded-xl bg-slate-50/50 max-h-[240px] overflow-y-auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. BACKUP SHIFT -->
+    <section id="panel-backup" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">Backup Otomatis Setiap Ganti Shift</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Arsip terkompresi otomatis dibuat setiap ganti shift lengkap dengan checksum &amp; penyimpanan VPS + Off-server/Cloud.</p>
+          </div>
+          <button id="runBackupWizardBtn" type="button" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow transition active:scale-95 cursor-pointer">
+            Jalankan Backup Step-by-Step
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 bg-slate-50">
+                <th class="py-2.5 px-3 font-bold">Waktu</th>
+                <th class="py-2.5 px-3 font-bold">Cabang</th>
+                <th class="py-2.5 px-3 font-bold">Shift &amp; Kasir</th>
+                <th class="py-2.5 px-3 font-bold">Arsip &amp; Checksum</th>
+                <th class="py-2.5 px-3 font-bold">Lokasi Simpan</th>
+                <th class="py-2.5 px-3 font-bold">Status</th>
+              </tr>
+            </thead>
+            <tbody id="backupLogTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. LAPORAN & FEFO -->
+    <section id="panel-laporan" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500">Omzet Penjualan Cabang</div>
+          <div id="repOmzetVal" class="text-2xl font-black text-slate-900 mt-1">Rp 0</div>
+          <div id="repTxCountVal" class="text-xs font-bold text-teal-700 mt-1">0 transaksi</div>
+        </div>
+        <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500">Estimasi Margin Kotor (vs HPP)</div>
+          <div id="repMarginVal" class="text-2xl font-black text-emerald-700 mt-1">Rp 0</div>
+          <div class="text-xs text-slate-400 mt-1">Kalkulasi multi-UOM &amp; embalase</div>
+        </div>
+        <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500">Batch FEFO Pantauan (H-30/60/90)</div>
+          <div id="repFefoCountVal" class="text-2xl font-black text-amber-600 mt-1">0</div>
+          <div class="text-xs text-slate-400 mt-1">Prioritas kedaluwarsa terdekat</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-7 bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm">
+          <h2 class="text-base font-extrabold text-slate-900 mb-3">Tabel Batch Obat &amp; Status FEFO</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-500 bg-slate-50">
+                  <th class="py-2.5 px-3 font-bold">Obat</th>
+                  <th class="py-2.5 px-3 font-bold">Batch</th>
+                  <th class="py-2.5 px-3 font-bold">Expired</th>
+                  <th class="py-2.5 px-3 font-bold">Stok</th>
+                  <th class="py-2.5 px-3 font-bold">Window FEFO</th>
+                </tr>
+              </thead>
+              <tbody id="fefoReportTbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm">
+          <h2 class="text-base font-extrabold text-slate-900 mb-3">Jatuh Tempo Faktur PBF</h2>
+          <div id="pbfDueList" class="space-y-2.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. FULL BLUEPRINT -->
+    <section id="panel-blueprint" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div>
+            <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-black bg-teal-100 text-teal-800 mb-1">FULL BLUEPRINT DOKUMENTASI</span>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900">Arsitektur &amp; Modul Aplikasi POS Apotek</h2>
+            <p class="text-xs sm:text-sm text-slate-600 mt-1">Ringkasan lengkap seluruh modul untuk presentasi owner, mitra, dan tim teknis.</p>
+          </div>
+          <input id="blueprintFilterInput" type="text" placeholder="Filter modul blueprint..." class="w-full md:w-72 px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div id="blueprintCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- 8. DATA DUMMY (DEMO) -->
+    <section id="panel-dump" class="app-tab-panel animate-panel hidden space-y-4">
+      <div class="bg-white/95 rounded-2xl border border-slate-200/90 p-4 sm:p-6 shadow-sm space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="text-lg sm:text-xl font-black text-slate-900">Data Dummy / Seed Dataset (Non-Production Demo)</h2>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300">MOCK / PREVIEW ONLY</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Dataset contoh apotek Indonesia untuk kebutuhan demo, pitching mitra, dan uji alur preview.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+              <button id="viewJsonDumpBtn" type="button" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white cursor-pointer">JSON</button>
+              <button id="viewSqlDumpBtn" type="button" class="px-3 py-1.5 rounded-lg text-slate-700 hover:text-slate-950 cursor-pointer">SQL Seed</button>
+            </div>
+            <button id="copyDumpBtn" type="button" class="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs cursor-pointer">
+              Salin Data
+            </button>
+            <button id="downloadJsonDumpBtn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer">
+              Unduh .json
+            </button>
+            <button id="downloadSqlDumpBtn" type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs cursor-pointer">
+              Unduh .sql
+            </button>
+          </div>
+        </div>
+
+        <pre id="dumpCodeViewer" class="bg-slate-950 text-emerald-300 p-4 rounded-2xl text-xs font-mono overflow-x-auto max-h-[520px] leading-relaxed"></pre>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL: RACIKAN BUILDER ==================== -->
+  <div id="racikanModalBox" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-4 animate-modal">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-base">Builder Racikan Multi-Bahan</h3>
+          <p class="text-xs text-slate-500">Pilih bahan/obat, jumlah dosis, dan biaya embalase</p>
+        </div>
+        <button id="closeRacikanModalBtn" type="button" class="text-slate-400 hover:text-slate-700 text-xl font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nama Racikan</label>
+            <input id="racikanTitleInput" type="text" value="Racikan Puyer Batuk Anak" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Biaya Embalase (Rp)</label>
+            <input id="racikanEmbalaseInput" type="number" min="0" step="500" value="5000" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold" />
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <div class="sm:col-span-7">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Bahan Obat</label>
+              <select id="racikanIngredientSelect" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm"></select>
+            </div>
+            <div class="sm:col-span-3">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Qty / Dosis</label>
+              <input id="racikanIngredientQty" type="number" min="1" value="3" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm font-bold" />
+            </div>
+            <div class="sm:col-span-2 flex items-end">
+              <button id="addRacikanIngredientBtn" type="button" class="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer">+ Bahan</button>
+            </div>
+          </div>
+
+          <div id="racikanDraftRows" class="space-y-1.5 pt-1"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Aturan Pakai / Signa</label>
+          <input id="racikanSignaField" type="text" value="3x1 bungkus sesudah makan" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        <div class="text-xs sm:text-sm font-extrabold text-indigo-900">
+          Total Racikan: <span id="racikanEstimateVal">Rp 0</span>
+        </div>
+        <div class="flex gap-2">
+          <button id="cancelRacikanBtn" type="button" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs sm:text-sm cursor-pointer">Batal</button>
+          <button id="saveRacikanToCartBtn" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm cursor-pointer">Tambah ke Keranjang</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: PAYMENT ==================== -->
+  <div id="paymentModalBox" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-modal">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-base">Pembayaran Kasir</h3>
+          <p id="payModalAmount" class="text-lg font-black text-teal-700">Rp 0</p>
+        </div>
+        <button id="closePayModalBtn" type="button" class="text-slate-400 hover:text-slate-700 text-xl font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div id="payMethodButtons" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
+        <button type="button" data-method="Tunai" class="pay-opt-btn py-2 px-2 rounded-xl border transition cursor-pointer">Tunai</button>
+        <button type="button" data-method="Transfer/EDC" class="pay-opt-btn py-2 px-2 rounded-xl border transition cursor-pointer">Transfer/EDC</button>
+        <button type="button" data-method="Tripay QRIS" class="pay-opt-btn py-2 px-2 rounded-xl border transition cursor-pointer">Tripay QRIS</button>
+        <button type="button" data-method="Midtrans VA" class="pay-opt-btn py-2 px-2 rounded-xl border transition cursor-pointer">Midtrans VA</button>
+      </div>
+
+      <div id="cashBox" class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm">
+        <div class="flex items-center justify-between">
+          <label class="font-bold text-slate-700">Uang Tunai Diterima (Rp)</label>
+          <div class="flex gap-1">
+            <button id="cashExactBtn" type="button" class="px-2 py-0.5 rounded bg-teal-100 text-teal-900 text-[10px] font-extrabold cursor-pointer">Pas</button>
+            <button id="cashAdd50Btn" type="button" class="px-2 py-0.5 rounded bg-white border border-slate-300 text-[10px] font-bold cursor-pointer">+50rb</button>
+            <button id="cashAdd100Btn" type="button" class="px-2 py-0.5 rounded bg-white border border-slate-300 text-[10px] font-bold cursor-pointer">+100rb</button>
+          </div>
+        </div>
+        <input id="cashReceivedField" type="number" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-extrabold text-slate-900" />
+        <div class="flex justify-between font-bold text-slate-800 pt-1">
+          <span>Kembalian:</span>
+          <span id="cashChangeVal" class="text-emerald-700 font-extrabold">Rp 0</span>
+        </div>
+      </div>
+
+      <div id="gatewayBox" class="hidden space-y-3 bg-indigo-50/80 p-3.5 rounded-xl border border-indigo-200 text-xs sm:text-sm">
+        <div class="flex items-center justify-between">
+          <span id="gatewayNameText" class="font-extrabold text-indigo-950">Tripay QRIS</span>
+          <span id="gatewayStatusTag" class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-950">PENDING</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 text-[10px] font-extrabold text-center">
+          <div id="gwStep1" class="py-1.5 px-2 rounded-lg bg-indigo-600 text-white">1. CREATED</div>
+          <div id="gwStep2" class="py-1.5 px-2 rounded-lg bg-amber-100 text-amber-900">2. PENDING</div>
+          <div id="gwStep3" class="py-1.5 px-2 rounded-lg bg-slate-200 text-slate-600">3. PAID</div>
+        </div>
+        <p id="gatewayDescText" class="text-xs text-slate-600">Menunggu callback webhook dari gateway pembayaran.</p>
+        <button id="simWebhookPaidBtn" type="button" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition active:scale-95 cursor-pointer">
+          Simulasi Webhook PAID / SETTLEMENT
+        </button>
+      </div>
+
+      <button id="confirmPayBtn" type="button" class="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm shadow transition active:scale-[0.99] cursor-pointer">
+        Selesaikan &amp; Cetak Struk
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: THERMAL RECEIPT ==================== -->
+  <div id="receiptModalBox" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-modal">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-slate-900 text-sm">Struk Kasir Thermal</h3>
+        <div class="flex items-center gap-1 text-[11px] bg-slate-100 p-1 rounded-lg">
+          <button id="paper58Btn" type="button" class="px-2 py-0.5 rounded font-bold bg-slate-900 text-white cursor-pointer">58mm</button>
+          <button id="paper80Btn" type="button" class="px-2 py-0.5 rounded font-bold text-slate-600 cursor-pointer">80mm</button>
+        </div>
+      </div>
+
+      <div class="flex justify-center bg-slate-100 p-3 rounded-xl overflow-x-auto">
+        <div id="receiptPrintBox" class="receipt-sheet p-3.5 text-[11px] leading-snug text-slate-900 w-[230px]"></div>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="printReceiptNowBtn" type="button" class="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer">
+          Cetak Struk
+        </button>
+        <button id="closeReceiptModalBtn" type="button" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD WA BAILEYS DEVICE ==================== -->
+  <div id="waAddModalBox" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-modal">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-extrabold text-slate-900 text-base">Tambah Perangkat WA Baileys</h3>
+        <button id="closeWaAddModalBtn" type="button" class="text-slate-400 hover:text-slate-700 text-xl font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Perangkat</label>
+          <input id="waNewLabelInput" type="text" placeholder="Contoh: WA Apoteker & Resep" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nomor WhatsApp</label>
+          <input id="waNewPhoneInput" type="text" placeholder="6281299887766" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono" />
+        </div>
+
+        <div class="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-4 text-center space-y-2">
+          <div class="relative inline-block p-2.5 bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="qr-laser-line absolute left-1 right-1 h-0.5 bg-emerald-500 shadow-[0_0_8px_#10b981] z-10"></div>
+            <svg class="w-24 h-24 text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm10-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm8-2h2v2h-2v-2zm4 0h2v2h-2v-2zm-2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h4v2h-4v-2z" />
+            </svg>
+          </div>
+          <div id="waPairingStateLabel" class="text-xs font-bold text-amber-700">PAIRING • Menunggu Scan QR / Pairing Code</div>
+          <div class="text-xs font-semibold text-slate-600">Pairing Code: <span id="waGeneratedCode" class="font-mono font-black text-teal-700">POS-7341</span></div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button id="cancelWaAddBtn" type="button" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs cursor-pointer">Batal</button>
+        <button id="confirmWaPairBtn" type="button" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer">Simulasi Hubungkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: PIN OVERRIDE ==================== -->
+  <div id="pinModalBox" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-modal">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-extrabold text-slate-900 text-base">PIN Override Kasir Darurat</h3>
+        <button id="closePinModalBtn" type="button" class="text-slate-400 hover:text-slate-700 text-xl font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">PIN Supervisor / Owner (Default: 1234)</label>
+          <input id="pinCodeField" type="password" value="1234" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-center tracking-widest font-black" />
+          <div id="pinPadGrid" class="grid grid-cols-3 gap-1.5 mt-2">
+            <button type="button" data-digit="1" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">1</button>
+            <button type="button" data-digit="2" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">2</button>
+            <button type="button" data-digit="3" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">3</button>
+            <button type="button" data-digit="4" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">4</button>
+            <button type="button" data-digit="5" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">5</button>
+            <button type="button" data-digit="6" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">6</button>
+            <button type="button" data-digit="7" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">7</button>
+            <button type="button" data-digit="8" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">8</button>
+            <button type="button" data-digit="9" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">9</button>
+            <button type="button" data-digit="CLR" class="pin-digit-btn py-1.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs cursor-pointer">CLR</button>
+            <button type="button" data-digit="0" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold cursor-pointer">0</button>
+            <button type="button" data-digit="DEL" class="pin-digit-btn py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold text-xs cursor-pointer">&larr;</button>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Kasir Pengganti</label>
+          <input id="overrideCashierField" type="text" placeholder="Contoh: Hendra (Backup Shift)" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button id="cancelPinBtn" type="button" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs cursor-pointer">Batal</button>
+        <button id="savePinOverrideBtn" type="button" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer">Aktifkan Kasir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: STEP-BY-STEP BACKUP RUNNER ==================== -->
+  <div id="backupRunnerModalBox" class="fixed inset-0 z-50 hidden bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-modal">
+      <div class="border-b border-slate-100 pb-3">
+        <h3 class="font-extrabold text-slate-900 text-base">Proses Backup Otomatis Ganti Shift</h3>
+        <p id="backupRunnerMeta" class="text-xs text-slate-500">Menyiapkan snapshot cabang...</p>
+      </div>
+
+      <div id="backupRunnerSteps" class="space-y-2 text-xs sm:text-sm"></div>
+
+      <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+        <div id="backupRunnerBar" class="bg-gradient-to-r from-teal-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
+      </div>
+
+      <div class="flex justify-end">
+        <button id="finishBackupRunnerBtn" type="button" disabled class="px-4 py-2 rounded-xl bg-slate-900 disabled:bg-slate-300 text-white font-bold text-xs cursor-pointer">
+          Selesai
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APPLICATION JAVASCRIPT ==================== -->
+  <script>
+    /**
+     * DUMP / SEED DATA (NON-PRODUCTION DEMO / PREVIEW DATA)
+     * Realistic Indonesian pharmacy mock dataset for presentations, previews, and testing.
+     */
+    const DEMO_SEED_DATA = {
+      meta: {
+        environment: 'DEMO_PREVIEW_ONLY',
+        generatedFor: 'Apotek POS Client & Partner Preview',
+        currency: 'IDR',
+        note: 'Data dummy simulasi — bukan data produksi.'
+      },
+      branches: [
+        {
+          id: 'BR-UTAMA',
+          name: 'Cabang Utama',
+          address: 'Jl. Jenderal Sudirman No. 48, Semarang',
+          apa: 'apt. Nabila Kusuma, S.Farm',
+          shifts: [
+            { id: 'SH-U1', name: 'Shift Pagi', cashier: 'Ayu Lestari', days: 'Senin - Minggu', start: '07:00', end: '13:59' },
+            { id: 'SH-U2', name: 'Shift Siang', cashier: 'Rizky Pratama', days: 'Senin - Minggu', start: '14:00', end: '20:59' },
+            { id: 'SH-U3', name: 'Shift Malam', cashier: 'Siti Rahmawati', days: 'Senin - Minggu', start: '21:00', end: '23:59' }
+          ]
+        },
+        {
+          id: 'BR-KRG',
+          name: 'Cabang Kranggan',
+          address: 'Jl. KH Wahid Hasyim No. 112, Semarang',
+          apa: 'apt. Bagas Wijaya, S.Farm',
+          shifts: [
+            { id: 'SH-K1', name: 'Shift Pagi', cashier: 'Dewi Anggraini', days: 'Senin - Minggu', start: '07:00', end: '13:59' },
+            { id: 'SH-K2', name: 'Shift Siang', cashier: 'Fajar Nugroho', days: 'Senin - Minggu', start: '14:00', end: '20:59' },
+            { id: 'SH-K3', name: 'Shift Malam', cashier: 'Nadia Putri', days: 'Senin - Minggu', start: '21:00', end: '23:59' }
+          ]
+        },
+        {
+          id: 'BR-TMG',
+          name: 'Cabang Temanggung',
+          address: 'Jl. Pahlawan No. 25, Temanggung',
+          apa: 'apt. Hendro Santoso, S.Farm',
+          shifts: [
+            { id: 'SH-T1', name: 'Shift Pagi', cashier: 'Maya Sari', days: 'Senin - Minggu', start: '07:00', end: '13:59' },
+            { id: 'SH-T2', name: 'Shift Siang', cashier: 'Agus Setiawan', days: 'Senin - Minggu', start: '14:00', end: '20:59' },
+            { id: 'SH-T3', name: 'Shift Malam', cashier: 'Lina Marlina', days: 'Senin - Minggu', start: '21:00', end: '23:59' }
+          ]
+        }
+      ],
+      drugs: [
+        {
+          id: 'DRG-01',
+          barcode: '8991001001',
+          brand: 'Sanmol 500mg',
+          generic: 'Paracetamol 500 mg',
+          category: 'Bebas',
+          rack: 'Rak A-01',
+          hppPerUnit: 850,
+          stockByBranch: { 'BR-UTAMA': 240, 'BR-KRG': 150, 'BR-TMG': 120 },
+          units: [
+            { label: 'Tablet', factor: 1, price: 1500 },
+            { label: 'Strip (10 Tab)', factor: 10, price: 13500 },
+            { label: 'Box (100 Tab)', factor: 100, price: 125000 }
+          ],
+          batches: [
+            { batchNo: 'B-SNM-2401', expiry: '2026-12-20', qty: 65, window: 'H-30' },
+            { batchNo: 'B-SNM-2409', expiry: '2027-08-15', qty: 175, window: 'AMAN' }
+          ]
+        },
+        {
+          id: 'DRG-02',
+          barcode: '8991001002',
+          brand: 'OBH Combi Plus 100ml',
+          generic: 'Paracetamol, Glyceryl Guaiacolate, Ephedrine',
+          category: 'Bebas Terbatas',
+          rack: 'Rak B-04',
+          hppPerUnit: 14500,
+          stockByBranch: { 'BR-UTAMA': 64, 'BR-KRG': 42, 'BR-TMG': 30 },
+          units: [
+            { label: 'Botol (100ml)', factor: 1, price: 21500 },
+            { label: 'Karton (24 Btl)', factor: 24, price: 492000 }
+          ],
+          batches: [
+            { batchNo: 'B-OBH-2404', expiry: '2027-01-18', qty: 24, window: 'H-60' },
+            { batchNo: 'B-OBH-2411', expiry: '2027-11-30', qty: 40, window: 'AMAN' }
+          ]
+        },
+        {
+          id: 'DRG-03',
+          barcode: '8991001003',
+          brand: 'Amoxicillin 500mg',
+          generic: 'Amoxicillin Trihydrate 500 mg',
+          category: 'Keras/Resep',
+          rack: 'Rak C-02',
+          hppPerUnit: 1200,
+          stockByBranch: { 'BR-UTAMA': 180, 'BR-KRG': 95, 'BR-TMG': 80 },
+          units: [
+            { label: 'Kapsul', factor: 1, price: 2200 },
+            { label: 'Strip (10 Kap)', factor: 10, price: 20000 },
+            { label: 'Box (100 Kap)', factor: 100, price: 185000 }
+          ],
+          batches: [
+            { batchNo: 'B-AMX-2406', expiry: '2027-02-12', qty: 70, window: 'H-90' },
+            { batchNo: 'B-AMX-2412', expiry: '2028-03-10', qty: 110, window: 'AMAN' }
+          ]
+        },
+        {
+          id: 'DRG-04',
+          barcode: '8991001004',
+          brand: 'Cetirizine 10mg',
+          generic: 'Cetirizine HCl 10 mg',
+          category: 'Bebas Terbatas',
+          rack: 'Rak A-09',
+          hppPerUnit: 1100,
+          stockByBranch: { 'BR-UTAMA': 130, 'BR-KRG': 88, 'BR-TMG': 65 },
+          units: [
+            { label: 'Tablet', factor: 1, price: 2000 },
+            { label: 'Strip (10 Tab)', factor: 10, price: 18000 }
+          ],
+          batches: [
+            { batchNo: 'B-CTZ-2408', expiry: '2027-06-25', qty: 130, window: 'AMAN' }
+          ]
+        },
+        {
+          id: 'DRG-05',
+          barcode: '8991001005',
+          brand: 'Puyer Flu & Batuk (Racikan)',
+          generic: 'Formulasi Racikan Apotek',
+          category: 'Racikan',
+          rack: 'Meja Racik-01',
+          hppPerUnit: 4200,
+          stockByBranch: { 'BR-UTAMA': 45, 'BR-KRG': 28, 'BR-TMG': 20 },
+          units: [
+            { label: 'Bungkus', factor: 1, price: 8500 },
+            { label: 'Paket 10 Bks', factor: 10, price: 80000 }
+          ],
+          batches: [
+            { batchNo: 'B-RCK-2410', expiry: '2027-04-05', qty: 45, window: 'AMAN' }
+          ]
+        },
+        {
+          id: 'DRG-06',
+          barcode: '8991001006',
+          brand: 'Amlodipine 5mg',
+          generic: 'Amlodipine Besylate 5 mg',
+          category: 'Keras/Resep',
+          rack: 'Rak C-07',
+          hppPerUnit: 1400,
+          stockByBranch: { 'BR-UTAMA': 210, 'BR-KRG': 120, 'BR-TMG': 90 },
+          units: [
+            { label: 'Tablet', factor: 1, price: 2500 },
+            { label: 'Strip (10 Tab)', factor: 10, price: 23000 }
+          ],
+          batches: [
+            { batchNo: 'B-AML-2407', expiry: '2027-09-18', qty: 210, window: 'AMAN' }
+          ]
+        }
+      ],
+      pbfInvoices: [
+        { id: 'INV-PBF-881', pbf: 'PT Kimia Farma Trading', dueDate: '2026-12-03', amount: 4850000, status: 'Jatuh Tempo Dekat' },
+        { id: 'INV-PBF-882', pbf: 'PT Mensa Bina Sukses', dueDate: '2026-12-12', amount: 3120000, status: 'Terjadwal' },
+        { id: 'INV-PBF-883', pbf: 'PT Anugrah Argon Medica', dueDate: '2026-12-20', amount: 6450000, status: 'Terjadwal' }
+      ],
+      mutations: [
+        { id: 'MUT-201', from: 'Cabang Utama', to: 'Cabang Kranggan', drug: 'Sanmol 500mg', qty: 30, time: '07:40', status: 'Diterima' },
+        { id: 'MUT-202', from: 'Cabang Utama', to: 'Cabang Temanggung', drug: 'OBH Combi Plus 100ml', qty: 12, time: '08:15', status: 'Diterima' }
+      ],
+      waDevices: [
+        { id: 'WA-DEV-01', label: 'WA Kasir & Struk Utama', phone: '6281228001101', status: 'CONNECTED', pairingCode: 'APTK-9021' },
+        { id: 'WA-DEV-02', label: 'WA Alert Expired & PBF', phone: '6281228001102', status: 'PAIRING', pairingCode: 'APTK-4418' },
+        { id: 'WA-DEV-03', label: 'WA Cabang Kranggan', phone: '6281228001103', status: 'DISCONNECTED', pairingCode: 'APTK-7730' }
+      ],
+      waLogs: [
+        { time: '07:05', target: '6281228009900', text: 'Rekap Shift Pagi dimulai — Kasir: Ayu Lestari (Cabang Utama).', status: 'SENT' },
+        { time: '08:10', target: '6285640112233', text: 'Struk #TRX-20261125-01 telah dikirim ke pelanggan.', status: 'SENT' }
+      ],
+      backups: [
+        {
+          id: 'BKP-101',
+          time: '2026-11-25 07:00',
+          branchId: 'BR-UTAMA',
+          branchName: 'Cabang Utama',
+          shiftLabel: 'Shift Pagi (Ayu Lestari)',
+          file: 'apotek_BR-UTAMA_20261125_0700.tar.gz',
+          checksum: 'sha256:8d41f9c2a01b...77e2',
+          storage: 'VPS + Off-server Cloud',
+          status: 'SUCCESS'
+        },
+        {
+          id: 'BKP-102',
+          time: '2026-11-24 21:00',
+          branchId: 'BR-KRG',
+          branchName: 'Cabang Kranggan',
+          shiftLabel: 'Shift Malam (Nadia Putri)',
+          file: 'apotek_BR-KRG_20261124_2100.tar.gz',
+          checksum: 'sha256:3b90e41f88c1...19a4',
+          storage: 'VPS + Off-server Cloud',
+          status: 'SUCCESS'
+        }
+      ],
+      salesHistory: [
+        { id: 'TRX-1001', branchId: 'BR-UTAMA', total: 48500, hpp: 27200, method: 'Tunai' },
+        { id: 'TRX-1002', branchId: 'BR-UTAMA', total: 64000, hpp: 36500, method: 'Tripay QRIS' },
+        { id: 'TRX-1003', branchId: 'BR-KRG', total: 35000, hpp: 19800, method: 'Midtrans VA' }
+      ]
+    };
+
+    const BLUEPRINT_MODULES = [
+      {
+        code: 'BP-01',
+        title: 'Peran Pengguna & Jadwal Shift Otomatis',
+        tab: 'jadwal',
+        desc: 'Owner/Admin mengatur jadwal shift per cabang dan jam. Saat waktu berganti, nama kasir aktif di layar POS dan struk berganti otomatis tanpa login ulang, dilengkapi PIN override.'
+      },
+      {
+        code: 'BP-02',
+        title: 'Arsitektur Multi-Cabang & Mutasi Stok',
+        tab: 'cabang',
+        desc: 'Isolasi data stok, batch, transaksi, dan shift per cabang (branch_id) dengan mutasi stok antar cabang yang memperbarui stok secara langsung.'
+      },
+      {
+        code: 'BP-03',
+        title: 'Master Obat, Multi-UOM, FEFO & Pembelian PBF',
+        tab: 'laporan',
+        desc: 'Dukungan satuan bertingkat (Box/Strip/Tablet/Botol), pelacakan nomor batch & expired date, prioritas FEFO, pantauan H-30/H-60/H-90, dan jatuh tempo PBF.'
+      },
+      {
+        code: 'BP-04',
+        title: 'Kasir POS, Resep, Racikan & Tripay / Midtrans',
+        tab: 'kasir',
+        desc: 'Pencarian barcode/nama, catatan resep (dokter, pasien, aturan pakai), builder racikan multi-bahan + embalase, serta pembayaran Tunai, EDC, Tripay QRIS, dan Midtrans VA.'
+      },
+      {
+        code: 'BP-05',
+        title: 'Integrasi WA Baileys & Laman Perangkat',
+        tab: 'wa',
+        desc: 'Halaman tambah perangkat dengan QR / Pairing Code, status koneksi (CONNECTED, PAIRING, DISCONNECTED, LOGGED_OUT), aksi reconnect/logout, dan log pesan.'
+      },
+      {
+        code: 'BP-06',
+        title: 'Backup Otomatis Setiap Ganti Shift',
+        tab: 'backup',
+        desc: 'Menjalankan paket arsip terkompresi setiap pergantian shift lengkap dengan nama file, cabang, shift, checksum, lokasi VPS + Off-server/Cloud, dan status.'
+      },
+      {
+        code: 'BP-07',
+        title: 'Laporan Penjualan, Margin/HPP & Kepatuhan FEFO',
+        tab: 'laporan',
+        desc: 'Ringkasan omzet per cabang, estimasi margin kotor dari HPP, daftar batch FEFO mendekati kedaluwarsa, dan jadwal jatuh tempo faktur PBF.'
+      },
+      {
+        code: 'BP-08',
+        title: 'Klien Tablet PWA & Windows (.exe) + Hardware',
+        tab: 'kasir',
+        desc: 'Tablet PWA responsif untuk layar sentuh & struk 58mm/80mm, sedangkan Windows (.exe) disiapkan untuk printer thermal ESC/POS lokal dan QR/barcode scanner.'
+      }
+    ];
+
+    // Clone seed data into mutable demo state
+    const demoState = {
+      activeTab: 'kasir',
+      branchId: 'BR-UTAMA',
+      clientMode: 'tablet',
+      simulatedTime: '08:30',
+      manualCashierOverride: null,
+      pinOverrideLogs: [
+        { time: '07:15', branch: 'Cabang Utama', cashier: 'Ayu Lestari', note: 'Verifikasi awal shift pagi' }
+      ],
+      category: 'Semua',
+      searchQuery: '',
+      cart: [],
+      racikanBuilderItems: [],
+      selectedPayMethod: 'Tunai',
+      gatewayConfirmed: false,
+      receiptSize: '58mm',
+      lastReceipt: null,
+      dumpFormat: 'json',
+      branches: JSON.parse(JSON.stringify(DEMO_SEED_DATA.branches)),
+      drugs: JSON.parse(JSON.stringify(DEMO_SEED_DATA.drugs)),
+      pbfInvoices: JSON.parse(JSON.stringify(DEMO_SEED_DATA.pbfInvoices)),
+      mutations: JSON.parse(JSON.stringify(DEMO_SEED_DATA.mutations)),
+      waDevices: JSON.parse(JSON.stringify(DEMO_SEED_DATA.waDevices)),
+      waLogs: JSON.parse(JSON.stringify(DEMO_SEED_DATA.waLogs)),
+      backups: JSON.parse(JSON.stringify(DEMO_SEED_DATA.backups)),
+      salesHistory: JSON.parse(JSON.stringify(DEMO_SEED_DATA.salesHistory))
+    };
+
+    function formatIdr(amount) {
+      return 'Rp ' + Number(amount || 0).toLocaleString('id-ID');
+    }
+
+    function showToast(text, variant = 'info') {
+      const stack = document.getElementById('toastStack');
+      if (!stack) return;
+      const styles = {
+        info: 'bg-slate-900 text-white border-slate-700',
+        success: 'bg-emerald-700 text-white border-emerald-500',
+        warning: 'bg-amber-400 text-slate-950 border-amber-300',
+        error: 'bg-rose-600 text-white border-rose-500'
+      };
+      const div = document.createElement('div');
+      div.className = `animate-toast pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-semibold ${styles[variant] || styles.info}`;
+      div.textContent = text;
+      stack.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transform = 'translateX(20px)';
+        setTimeout(() => div.remove(), 220);
+      }, 3000);
+    }
+
+    function getCurrentBranch() {
+      return demoState.branches.find(b => b.id === demoState.branchId) || demoState.branches[0];
+    }
+
+    function toMinutes(hhmm) {
+      const [h, m] = (hhmm || '08:30').split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    }
+
+    function getActiveShift() {
+      const branch = getCurrentBranch();
+      const mins = toMinutes(demoState.simulatedTime);
+      const matched = branch.shifts.find(s => mins >= toMinutes(s.start) && mins <= toMinutes(s.end)) || branch.shifts[0];
+      return {
+        shiftId: matched.id,
+        shiftName: matched.name,
+        range: `${matched.start} - ${matched.end}`,
+        cashierName: demoState.manualCashierOverride || matched.cashier,
+        isOverride: Boolean(demoState.manualCashierOverride)
+      };
+    }
+
+    function syncShiftHeader(animateChange = false) {
+      const info = getActiveShift();
+      const branch = getCurrentBranch();
+      const nameEl = document.getElementById('headerCashierName');
+      const badgeEl = document.getElementById('headerShiftBadge');
+      const jadwalBranchEl = document.getElementById('jadwalBranchName');
+
+      if (nameEl) nameEl.textContent = info.cashierName;
+      if (badgeEl) badgeEl.textContent = `${info.shiftName} (${info.range})${info.isOverride ? ' • PIN' : ''}`;
+      if (jadwalBranchEl) jadwalBranchEl.textContent = branch.name;
+
+      if (animateChange) {
+        const box = document.getElementById('headerCashierBox');
+        if (box) {
+          box.classList.remove('animate-pop');
+          void box.offsetWidth;
+          box.classList.add('animate-pop');
+        }
+        const banner = document.getElementById('shiftAlertBanner');
+        const bannerText = document.getElementById('shiftAlertBannerText');
+        if (banner && bannerText) {
+          bannerText.textContent = `${branch.name}: ${info.shiftName} (${info.range}) — Kasir: ${info.cashierName}`;
+          banner.classList.remove('hidden', 'animate-shift-banner');
+          void banner.offsetWidth;
+          banner.classList.add('animate-shift-banner');
+          setTimeout(() => banner.classList.add('hidden'), 4200);
+        }
+      }
+    }
+
+    function setSimulatedClock(hhmm) {
+      const prev = getActiveShift();
+      demoState.simulatedTime = hhmm;
+      demoState.manualCashierOverride = null;
+      const clockInput = document.getElementById('simClockInput');
+      if (clockInput) clockInput.value = hhmm;
+
+      const next = getActiveShift();
+      const changed = prev.cashierName !== next.cashierName || prev.shiftName !== next.shiftName;
+      syncShiftHeader(changed);
+      renderShiftMatrix();
+
+      if (changed) {
+        appendShiftBackupRecord(false);
+        showToast(`Shift otomatis berganti ke ${next.shiftName} (${next.cashierName}) & backup dibuat`, 'success');
+      }
+    }
+
+    // Reliable Tab Switcher
+    function activateTab(tabName) {
+      demoState.activeTab = tabName;
+
+      document.querySelectorAll('.app-tab-panel').forEach(panel => {
+        panel.classList.add('hidden');
+      });
+
+      const targetPanel = document.getElementById(`panel-${tabName}`);
+      if (targetPanel) {
+        targetPanel.classList.remove('hidden');
+        targetPanel.classList.remove('animate-panel');
+        void targetPanel.offsetWidth;
+        targetPanel.classList.add('animate-panel');
+      }
+
+      document.querySelectorAll('.app-tab-btn').forEach(btn => {
+        const isCurrent = btn.dataset.tab === tabName;
+        btn.className = isCurrent
+          ? 'app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 bg-teal-600 text-white shadow-xs cursor-pointer'
+          : 'app-tab-btn px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer';
+      });
+
+      if (tabName === 'kasir') renderPosCatalog();
+      if (tabName === 'jadwal') renderShiftMatrix();
+      if (tabName === 'cabang') renderMultiBranchTab();
+      if (tabName === 'wa') renderWaTab();
+      if (tabName === 'backup') renderBackupTab();
+      if (tabName === 'laporan') renderReportTab();
+      if (tabName === 'blueprint') renderBlueprintTab();
+      if (tabName === 'dump') renderDumpTab();
+    }
+
+    // Client Mode Toggle
+    function setClientMode(mode) {
+      demoState.clientMode = mode;
+      const tBtn = document.getElementById('btnModeTablet');
+      const wBtn = document.getElementById('btnModeWindows');
+      const hint = document.getElementById('clientModeHint');
+      if (mode === 'tablet') {
+        tBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-teal-600 text-white transition cursor-pointer';
+        wBtn.className = 'px-2.5 py-1 rounded-lg font-bold text-slate-300 hover:text-white transition cursor-pointer';
+        if (hint) hint.textContent = 'Tablet PWA • Layar Sentuh & Web Print';
+        showToast('Mode Tablet PWA aktif');
+      } else {
+        wBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition cursor-pointer';
+        tBtn.className = 'px-2.5 py-1 rounded-lg font-bold text-slate-300 hover:text-white transition cursor-pointer';
+        if (hint) hint.textContent = 'Windows .exe • Printer ESC/POS & Scanner';
+        showToast('Mode Windows (.exe) aktif — siap hardware ESC/POS & QR reader');
+      }
+    }
+
+    // Category Filter Styling & Rendering
+    function applyCategorySelection(cat) {
+      demoState.category = cat;
+      document.querySelectorAll('.pos-cat-btn').forEach(btn => {
+        const active = btn.dataset.cat === cat;
+        btn.className = active
+          ? 'pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white shadow-2xs cursor-pointer'
+          : 'pos-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer';
+      });
+      renderPosCatalog();
+    }
+
+    function getNearestFefoBatch(drug) {
+      if (!drug.batches || !drug.batches.length) return null;
+      const sorted = [...drug.batches].sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+      return sorted[0];
+    }
+
+    function renderPosCatalog() {
+      const grid = document.getElementById('posCatalogGrid');
+      if (!grid) return;
+      const q = (demoState.searchQuery || '').trim().toLowerCase();
+
+      const filtered = demoState.drugs.filter(d => {
+        const matchCat = demoState.category === 'Semua' || d.category === demoState.category;
+        const matchQuery = !q ||
+          d.brand.toLowerCase().includes(q) ||
+          d.generic.toLowerCase().includes(q) ||
+          d.barcode.toLowerCase().includes(q) ||
+          d.category.toLowerCase().includes(q);
+        return matchCat && matchQuery;
+      });
+
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-400">Obat tidak ditemukan pada filter aktif.</div>`;
+        return;
+      }
+
+      const catBadgeMap = {
+        'Bebas': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        'Bebas Terbatas': 'bg-sky-100 text-sky-800 border-sky-200',
+        'Keras/Resep': 'bg-rose-100 text-rose-800 border-rose-200',
+        'Racikan': 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      };
+
+      grid.innerHTML = filtered.map(drug => {
+        const stock = drug.stockByBranch[demoState.branchId] ?? 0;
+        const nearest = getNearestFefoBatch(drug);
+        const badgeStyle = catBadgeMap[drug.category] || 'bg-slate-100 text-slate-700 border-slate-200';
+
+        const uomHtml = drug.units.map((u, idx) => {
+          const disabled = stock < u.factor;
+          return `
+            <button type="button" ${disabled ? 'disabled' : ''} data-drug-id="${drug.id}" data-uom-idx="${idx}" class="add-uom-btn px-2.5 py-2 rounded-xl border text-left transition ${
+              disabled
+                ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
+                : 'border-slate-200 bg-slate-50/80 hover:bg-teal-600 hover:text-white hover:border-teal-600 text-slate-800 cursor-pointer'
+            }">
+              <div class="text-[11px] font-bold truncate">${u.label}</div>
+              <div class="text-xs font-extrabold">${formatIdr(u.price)}</div>
+            </button>
+          `;
+        }).join('');
+
+        return `
+          <div class="pos-card bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="inline-block text-[10px] font-black px-2 py-0.5 rounded-full border ${badgeStyle}">${drug.category}</span>
+                  <h3 class="font-extrabold text-slate-900 text-sm mt-1">${drug.brand}</h3>
+                  <p class="text-xs text-slate-500">${drug.generic} • <span class="font-mono">${drug.barcode}</span> • <span class="font-semibold text-slate-600">${drug.rack}</span></p>
+                </div>
+                <span class="text-[11px] font-extrabold px-2 py-1 rounded-lg bg-slate-100 text-slate-800 shrink-0">Stok: ${stock}</span>
+              </div>
+
+              ${nearest ? `
+                <div class="mt-2 text-[11px] bg-amber-50 border border-amber-200 text-amber-950 rounded-lg px-2.5 py-1 flex items-center justify-between">
+                  <span>FEFO: <strong>${nearest.batchNo}</strong> (${nearest.window})</span>
+                  <span>Exp: <strong>${nearest.expiry}</strong></span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">${uomHtml}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addUnitItemToCart(drugId, uomIdx) {
+      const drug = demoState.drugs.find(d => d.id === drugId);
+      if (!drug) return;
+      const unit = drug.units[uomIdx];
+      if (!unit) return;
+      const available = drug.stockByBranch[demoState.branchId] ?? 0;
+
+      const uid = `${drug.id}__${uomIdx}`;
+      const existing = demoState.cart.find(c => c.uid === uid);
+      const nextUnits = ((existing ? existing.qty : 0) + 1) * unit.factor;
+      if (nextUnits > available) {
+        showToast(`Stok ${drug.brand} tidak cukup untuk satuan ${unit.label}`, 'warning');
+        return;
+      }
+
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        demoState.cart.push({
+          uid,
+          kind: 'unit',
+          drugId: drug.id,
+          title: `${drug.brand} (${unit.label})`,
+          meta: `${drug.category} • ${drug.rack}`,
+          qty: 1,
+          factor: unit.factor,
+          price: unit.price,
+          hpp: drug.hppPerUnit * unit.factor,
+          embalase: 0
+        });
+      }
+
+      renderCart();
+      const pill = document.getElementById('cartCountPill');
+      if (pill) {
+        pill.classList.remove('animate-pop');
+        void pill.offsetWidth;
+        pill.classList.add('animate-pop');
+      }
+      showToast(`${drug.brand} (${unit.label}) masuk keranjang`);
+    }
+
+    // Racikan Modal Logic
+    function openRacikanBuilder() {
+      const sel = document.getElementById('racikanIngredientSelect');
+      sel.innerHTML = demoState.drugs.map(d => {
+        const st = d.stockByBranch[demoState.branchId] ?? 0;
+        return `<option value="${d.id}">${d.brand} (Stok: ${st})</option>`;
+      }).join('');
+
+      const first = demoState.drugs[0];
+      demoState.racikanBuilderItems = first ? [{
+        drugId: first.id,
+        brand: first.brand,
+        qty: 3,
+        price: first.units[0].price,
+        hpp: first.hppPerUnit
+      }] : [];
+
+      renderRacikanBuilderRows();
+      document.getElementById('racikanModalBox').classList.remove('hidden');
+    }
+
+    function closeRacikanBuilder() {
+      document.getElementById('racikanModalBox').classList.add('hidden');
+    }
+
+    function renderRacikanBuilderRows() {
+      const wrap = document.getElementById('racikanDraftRows');
+      const fee = Math.max(0, Number(document.getElementById('racikanEmbalaseInput')?.value || 0));
+      let sum = 0;
+
+      if (!demoState.racikanBuilderItems.length) {
+        wrap.innerHTML = `<div class="text-xs text-slate-400">Belum ada komponen bahan.</div>`;
+        document.getElementById('racikanEstimateVal').textContent = formatIdr(fee);
+        return;
+      }
+
+      wrap.innerHTML = demoState.racikanBuilderItems.map((row, idx) => {
+        const lineTotal = row.price * row.qty;
+        sum += lineTotal;
+        return `
+          <div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs">
+            <span class="font-bold text-slate-800">${row.qty}x ${row.brand} <span class="text-slate-400 font-normal">(${formatIdr(lineTotal)})</span></span>
+            <button type="button" data-rm-ing="${idx}" class="rm-ing-btn text-rose-600 font-bold hover:underline cursor-pointer">Hapus</button>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('racikanEstimateVal').textContent = formatIdr(sum + fee);
+    }
+
+    function addRacikanToCart() {
+      if (!demoState.racikanBuilderItems.length) {
+        showToast('Tambahkan minimal 1 bahan racikan', 'warning');
+        return;
+      }
+      const title = document.getElementById('racikanTitleInput').value.trim() || 'Racikan Apotek';
+      const embalase = Math.max(0, Number(document.getElementById('racikanEmbalaseInput').value || 0));
+      const signa = document.getElementById('racikanSignaField').value.trim();
+
+      let basePrice = 0;
+      let baseHpp = 0;
+      const ingredients = demoState.racikanBuilderItems.map(item => {
+        basePrice += item.price * item.qty;
+        baseHpp += item.hpp * item.qty;
+        return { drugId: item.drugId, units: item.qty, label: `${item.qty}x ${item.brand}` };
+      });
+
+      demoState.cart.push({
+        uid: `RCK-${Date.now()}`,
+        kind: 'racikan',
+        ingredients,
+        title,
+        meta: `${ingredients.map(x => x.label).join(', ')}${signa ? ` • ${signa}` : ''}`,
+        qty: 1,
+        factor: 1,
+        price: basePrice,
+        hpp: baseHpp,
+        embalase
+      });
+
+      closeRacikanBuilder();
+      renderCart();
+      showToast(`Racikan "${title}" ditambahkan ke keranjang`, 'success');
+    }
+
+    function getCartTotals() {
+      const subTotal = demoState.cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+      const embalaseTotal = demoState.cart.reduce((acc, item) => acc + item.embalase * item.qty, 0);
+      return { subTotal, embalaseTotal, grandTotal: subTotal + embalaseTotal };
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cartListContainer');
+      const pill = document.getElementById('cartCountPill');
+      const totalItems = demoState.cart.reduce((acc, i) => acc + i.qty, 0);
+      if (pill) pill.textContent = totalItems;
+
+      if (!demoState.cart.length) {
+        container.innerHTML = `<div class="text-center py-10 text-sm text-slate-400">Keranjang kosong. Pilih obat atau buat racikan.</div>`;
+      } else {
+        container.innerHTML = demoState.cart.map(item => `
+          <div class="flex items-center justify-between gap-2 bg-slate-50/90 border border-slate-200/80 rounded-xl p-2.5">
+            <div class="min-w-0">
+              <div class="text-xs sm:text-sm font-extrabold text-slate-900 truncate">${item.title}</div>
+              <div class="text-[11px] text-slate-500 truncate">${item.meta}</div>
+              <div class="text-xs font-bold text-teal-700 mt-0.5">${formatIdr((item.price + item.embalase) * item.qty)}</div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" data-cart-dec="${item.uid}" class="cart-dec-btn w-7 h-7 rounded-lg bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 cursor-pointer">-</button>
+              <span class="w-6 text-center text-xs font-extrabold">${item.qty}</span>
+              <button type="button" data-cart-inc="${item.uid}" class="cart-inc-btn w-7 h-7 rounded-lg bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 cursor-pointer">+</button>
+              <button type="button" data-cart-del="${item.uid}" class="cart-del-btn ml-1 px-1.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">&times;</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const totals = getCartTotals();
+      document.getElementById('cartSubTotalVal').textContent = formatIdr(totals.subTotal);
+      document.getElementById('cartEmbalaseVal').textContent = formatIdr(totals.embalaseTotal);
+      document.getElementById('cartGrandTotalVal').textContent = formatIdr(totals.grandTotal);
+    }
+
+    function changeCartItemQty(uid, delta) {
+      const idx = demoState.cart.findIndex(i => i.uid === uid);
+      if (idx === -1) return;
+      const item = demoState.cart[idx];
+      const nextQty = item.qty + delta;
+      if (nextQty <= 0) {
+        demoState.cart.splice(idx, 1);
+        renderCart();
+        return;
+      }
+
+      if (item.kind === 'racikan') {
+        for (const ing of item.ingredients) {
+          const d = demoState.drugs.find(x => x.id === ing.drugId);
+          const st = d?.stockByBranch[demoState.branchId] ?? 0;
+          if (ing.units * nextQty > st) {
+            showToast(`Stok ${d.brand} tidak cukup untuk racikan`, 'warning');
+            return;
+          }
+        }
+      } else {
+        const d = demoState.drugs.find(x => x.id === item.drugId);
+        const st = d?.stockByBranch[demoState.branchId] ?? 0;
+        if (item.factor * nextQty > st) {
+          showToast('Stok obat tidak mencukupi', 'warning');
+          return;
+        }
+      }
+
+      item.qty = nextQty;
+      renderCart();
+    }
+
+    // Payment Modal Logic
+    function openPaymentModal() {
+      const { grandTotal } = getCartTotals();
+      if (!demoState.cart.length || grandTotal <= 0) {
+        showToast('Tambahkan item ke keranjang terlebih dahulu', 'warning');
+        return;
+      }
+      document.getElementById('payModalAmount').textContent = formatIdr(grandTotal);
+      document.getElementById('cashReceivedField').value = grandTotal;
+      choosePaymentMethod('Tunai');
+      updateCashChange();
+      document.getElementById('paymentModalBox').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModalBox').classList.add('hidden');
+    }
+
+    function choosePaymentMethod(method) {
+      demoState.selectedPayMethod = method;
+      document.querySelectorAll('.pay-opt-btn').forEach(btn => {
+        const active = btn.dataset.method === method;
+        btn.className = active
+          ? 'pay-opt-btn py-2 px-2 rounded-xl border text-xs font-extrabold bg-slate-900 text-white border-slate-900 cursor-pointer'
+          : 'pay-opt-btn py-2 px-2 rounded-xl border text-xs font-bold bg-white text-slate-700 border-slate-300 hover:bg-slate-50 cursor-pointer';
+      });
+
+      const isCash = method === 'Tunai';
+      const isGateway = method.includes('Tripay') || method.includes('Midtrans');
+
+      document.getElementById('cashBox').classList.toggle('hidden', !isCash);
+      document.getElementById('gatewayBox').classList.toggle('hidden', !isGateway);
+
+      if (isGateway) {
+        demoState.gatewayConfirmed = false;
+        document.getElementById('gatewayNameText').textContent = method;
+        document.getElementById('gatewayStatusTag').textContent = 'PENDING';
+        document.getElementById('gatewayStatusTag').className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-950';
+        document.getElementById('gwStep1').className = 'py-1.5 px-2 rounded-lg bg-indigo-600 text-white';
+        document.getElementById('gwStep2').className = 'py-1.5 px-2 rounded-lg bg-amber-200 text-amber-950';
+        document.getElementById('gwStep3').className = 'py-1.5 px-2 rounded-lg bg-slate-200 text-slate-600';
+        document.getElementById('gatewayDescText').textContent = `Tagihan ${method} dibuat. Klik simulasi webhook untuk menandai PAID.`;
+      }
+    }
+
+    function updateCashChange() {
+      const { grandTotal } = getCartTotals();
+      const received = Number(document.getElementById('cashReceivedField').value || 0);
+      document.getElementById('cashChangeVal').textContent = formatIdr(Math.max(0, received - grandTotal));
+    }
+
+    function applyFefoDeduction(drugId, unitsToDeduct) {
+      const drug = demoState.drugs.find(d => d.id === drugId);
+      if (!drug) return;
+      drug.stockByBranch[demoState.branchId] = Math.max(0, (drug.stockByBranch[demoState.branchId] ?? 0) - unitsToDeduct);
+
+      let rem = unitsToDeduct;
+      drug.batches.sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+      for (const b of drug.batches) {
+        if (rem <= 0) break;
+        const take = Math.min(b.qty, rem);
+        b.qty -= take;
+        rem -= take;
+      }
+    }
+
+    function completeCheckout() {
+      const { grandTotal } = getCartTotals();
+      const method = demoState.selectedPayMethod;
+      const isCash = method === 'Tunai';
+      const isGateway = method.includes('Tripay') || method.includes('Midtrans');
+      const received = Number(document.getElementById('cashReceivedField').value || 0);
+
+      if (isCash && received < grandTotal) {
+        showToast('Nominal tunai kurang dari total tagihan', 'error');
+        return;
+      }
+      if (isGateway && !demoState.gatewayConfirmed) {
+        showToast('Konfirmasi status webhook PAID terlebih dahulu', 'warning');
+        return;
+      }
+
+      let totalHpp = 0;
+      const lines = demoState.cart.map(item => {
+        if (item.kind === 'racikan') {
+          item.ingredients.forEach(ing => applyFefoDeduction(ing.drugId, ing.units * item.qty));
+        } else {
+          applyFefoDeduction(item.drugId, item.factor * item.qty);
+        }
+        totalHpp += item.hpp * item.qty;
+        return {
+          title: item.title,
+          qty: item.qty,
+          amount: (item.price + item.embalase) * item.qty
+        };
+      });
+
+      const branch = getCurrentBranch();
+      const shift = getActiveShift();
+      const rxActive = document.getElementById('rxEnabledCheck').checked;
+      const rxInfo = rxActive ? {
+        dokter: document.getElementById('rxDokterField').value.trim() || '-',
+        pasien: document.getElementById('rxPasienField').value.trim() || '-',
+        aturan: document.getElementById('rxAturanField').value.trim() || '-'
+      } : null;
+
+      const receipt = {
+        trxId: `TRX-${Date.now().toString().slice(-6)}`,
+        time: `${demoState.simulatedTime} WIB`,
+        branchName: branch.name,
+        cashierName: shift.cashierName,
+        shiftName: shift.shiftName,
+        method,
+        total: grandTotal,
+        received: isCash ? received : grandTotal,
+        change: isCash ? Math.max(0, received - grandTotal) : 0,
+        lines,
+        rxInfo
+      };
+
+      demoState.salesHistory.push({
+        id: receipt.trxId,
+        branchId: branch.id,
+        total: grandTotal,
+        hpp: totalHpp,
+        method
+      });
+
+      demoState.lastReceipt = receipt;
+      demoState.cart = [];
+      renderCart();
+      renderPosCatalog();
+      closePaymentModal();
+      openReceiptModal(receipt);
+      showToast(`Transaksi ${receipt.trxId} berhasil & stok FEFO diperbarui`, 'success');
+    }
+
+    function openReceiptModal(receipt) {
+      const box = document.getElementById('receiptPrintBox');
+      const itemsHtml = receipt.lines.map(l => `
+        <div class="flex justify-between gap-2">
+          <span class="truncate">${l.qty}x ${l.title}</span>
+          <span class="font-bold shrink-0">${formatIdr(l.amount)}</span>
+        </div>
+      `).join('');
+
+      box.innerHTML = `
+        <div class="text-center border-b border-dashed border-slate-400 pb-2 mb-2">
+          <div class="font-black text-xs">APOTEK POS (DEMO PREVIEW)</div>
+          <div class="text-[10px]">${receipt.branchName}</div>
+          <div class="text-[10px] text-slate-600">${receipt.trxId} • ${receipt.time}</div>
+        </div>
+        <div class="text-[10px] space-y-0.5 mb-2 border-b border-dashed border-slate-300 pb-2">
+          <div>Kasir: <strong>${receipt.cashierName}</strong> (${receipt.shiftName})</div>
+          <div>Bayar: <strong>${receipt.method}</strong></div>
+          ${receipt.rxInfo ? `<div class="mt-1 bg-amber-50 p-1 rounded">Resep: dr. ${receipt.rxInfo.dokter} | Pasien: ${receipt.rxInfo.pasien} | ${receipt.rxInfo.aturan}</div>` : ''}
+        </div>
+        <div class="space-y-1 border-b border-dashed border-slate-400 pb-2 mb-2">${itemsHtml}</div>
+        <div class="space-y-0.5 text-[11px]">
+          <div class="flex justify-between font-black"><span>TOTAL</span><span>${formatIdr(receipt.total)}</span></div>
+          <div class="flex justify-between"><span>BAYAR</span><span>${formatIdr(receipt.received)}</span></div>
+          <div class="flex justify-between"><span>KEMBALI</span><span>${formatIdr(receipt.change)}</span></div>
+        </div>
+        <div class="text-center text-[10px] text-slate-500 mt-3">Semoga lekas sembuh • Simpan struk ini</div>
+      `;
+      setReceiptSize(demoState.receiptSize);
+      document.getElementById('receiptModalBox').classList.remove('hidden');
+    }
+
+    function setReceiptSize(mm) {
+      demoState.receiptSize = mm;
+      const box = document.getElementById('receiptPrintBox');
+      const b58 = document.getElementById('paper58Btn');
+      const b80 = document.getElementById('paper80Btn');
+      if (mm === '58mm') {
+        box.style.width = '230px';
+        b58.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-white cursor-pointer';
+        b80.className = 'px-2 py-0.5 rounded font-bold text-slate-600 cursor-pointer';
+      } else {
+        box.style.width = '310px';
+        b80.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-white cursor-pointer';
+        b58.className = 'px-2 py-0.5 rounded font-bold text-slate-600 cursor-pointer';
+      }
+    }
+
+    // Shift Matrix Rendering & Management
+    function renderShiftMatrix() {
+      const branch = getCurrentBranch();
+      const tbody = document.getElementById('shiftMatrixTbody');
+      const activeShift = getActiveShift();
+      if (!tbody) return;
+
+      tbody.innerHTML = branch.shifts.map(s => {
+        const isCurrent = s.id === activeShift.shiftId;
+        return `
+          <tr class="${isCurrent ? 'bg-teal-50/70' : ''}">
+            <td class="py-2.5 px-3 font-extrabold text-slate-900">${s.name}</td>
+            <td class="py-2.5 px-3 font-bold text-teal-800">${s.cashier}</td>
+            <td class="py-2.5 px-3 text-slate-600">${s.days}</td>
+            <td class="py-2.5 px-3 font-mono text-xs font-semibold">${s.start} - ${s.end}</td>
+            <td class="py-2.5 px-3">
+              ${isCurrent
+                ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">AKTIF</span>`
+                : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">TERJADWAL</span>`
+              }
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <button type="button" data-del-shift="${s.id}" class="del-shift-btn text-xs font-bold text-rose-600 hover:underline cursor-pointer">Hapus</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const logBox = document.getElementById('pinOverrideLogBox');
+      logBox.innerHTML = demoState.pinOverrideLogs.map(l => `
+        <div class="flex items-center justify-between bg-amber-50/70 border border-amber-200/80 px-3 py-2 rounded-xl">
+          <span><strong>${l.time}</strong> • ${l.branch} → Kasir: <strong>${l.cashier}</strong></span>
+          <span class="text-amber-900 font-semibold">${l.note}</span>
+        </div>
+      `).join('');
+    }
+
+    // Multi-Branch & Mutation Logic
+    function renderMultiBranchTab() {
+      const cardsWrap = document.getElementById('branchSummaryCards');
+      cardsWrap.innerHTML = demoState.branches.map(b => {
+        const totalStock = demoState.drugs.reduce((sum, d) => sum + (d.stockByBranch[b.id] ?? 0), 0);
+        const isSelected = b.id === demoState.branchId;
+        return `
+          <div class="p-3.5 rounded-2xl border ${isSelected ? 'border-teal-500 bg-teal-50/40' : 'border-slate-200 bg-white'}">
+            <div class="flex items-center justify-between">
+              <h3 class="font-extrabold text-slate-900 text-sm">${b.name}</h3>
+              <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-slate-900 text-teal-300">Stok: ${totalStock}</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">${b.address}</p>
+            <p class="text-[11px] font-semibold text-slate-600 mt-1">APA: ${b.apa}</p>
+          </div>
+        `;
+      }).join('');
+
+      const fromSel = document.getElementById('mutasiFromSelect');
+      const toSel = document.getElementById('mutasiToSelect');
+      const drugSel = document.getElementById('mutasiDrugSelect');
+
+      const opts = demoState.branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      fromSel.innerHTML = opts;
+      toSel.innerHTML = opts;
+      fromSel.value = demoState.branchId;
+      toSel.value = demoState.branches.find(b => b.id !== demoState.branchId)?.id || 'BR-KRG';
+
+      drugSel.innerHTML = demoState.drugs.map(d => {
+        const st = d.stockByBranch[fromSel.value] ?? 0;
+        return `<option value="${d.id}">${d.brand} (Stok asal: ${st})</option>`;
+      }).join('');
+
+      renderMutationHistory();
+    }
+
+    function renderMutationHistory() {
+      const list = document.getElementById('mutasiHistoryList');
+      list.innerHTML = demoState.mutations.map(m => `
+        <div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/70 text-xs">
+          <div>
+            <div class="font-extrabold text-slate-900">${m.from} &rarr; ${m.to}</div>
+            <div class="text-slate-600">${m.drug} • <strong>${m.qty} unit</strong> • Jam ${m.time}</div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">${m.status}</span>
+        </div>
+      `).join('');
+    }
+
+    // WA Baileys Logic
+    function renderWaTab() {
+      const onlineCount = demoState.waDevices.filter(d => d.status === 'CONNECTED').length;
+      const pill = document.getElementById('waOnlinePill');
+      if (pill) pill.textContent = onlineCount;
+
+      const badgeMap = {
+        CONNECTED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        PAIRING: 'bg-amber-100 text-amber-900 border-amber-200',
+        DISCONNECTED: 'bg-rose-100 text-rose-800 border-rose-200',
+        LOGGED_OUT: 'bg-slate-200 text-slate-700 border-slate-300'
+      };
+
+      const cards = document.getElementById('waDevicesCards');
+      cards.innerHTML = demoState.waDevices.map(dev => `
+        <div class="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-mono font-bold text-slate-500">${dev.id}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border ${badgeMap[dev.status] || badgeMap.DISCONNECTED}">${dev.status}</span>
+            </div>
+            <h3 class="font-extrabold text-slate-900 text-sm mt-1.5">${dev.label}</h3>
+            <p class="text-xs font-mono text-slate-600 mt-0.5">+${dev.phone} • Code: <strong>${dev.pairingCode}</strong></p>
+          </div>
+
+          <div class="flex items-center gap-2 pt-1">
+            <button type="button" data-wa-reconnect="${dev.id}" class="wa-reconnect-btn flex-1 py-1.5 px-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs cursor-pointer">
+              Reconnect
+            </button>
+            <button type="button" data-wa-logout="${dev.id}" class="wa-logout-btn py-1.5 px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 cursor-pointer">
+              Logout
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      const logsWrap = document.getElementById('waDeliveryLogs');
+      logsWrap.innerHTML = demoState.waLogs.map(l => `
+        <div class="px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs">
+          <div>
+            <span class="font-mono font-bold text-slate-500">${l.time}</span>
+            <span class="mx-1.5 font-mono font-bold text-teal-800">${l.target}</span>
+            <span class="text-slate-800">${l.text}</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 shrink-0">${l.status}</span>
+        </div>
+      `).join('');
+    }
+
+    // Shift-Change Backup Logic
+    function appendShiftBackupRecord(notify = true) {
+      const branch = getCurrentBranch();
+      const shift = getActiveShift();
+      const hex = Math.random().toString(16).slice(2, 10);
+      const stamp = demoState.simulatedTime.replace(':', '');
+
+      demoState.backups.unshift({
+        id: `BKP-${Date.now().toString().slice(-4)}`,
+        time: `2026-11-25 ${demoState.simulatedTime}`,
+        branchId: branch.id,
+        branchName: branch.name,
+        shiftLabel: `${shift.shiftName} (${shift.cashierName})`,
+        file: `apotek_${branch.id}_20261125_${stamp}.tar.gz`,
+        checksum: `sha256:${hex}...c91a`,
+        storage: 'VPS + Off-server Cloud',
+        status: 'SUCCESS'
+      });
+
+      renderBackupTab();
+      if (notify) {
+        showToast(`Backup shift ${branch.name} (${shift.shiftName}) tersimpan`, 'success');
+      }
+    }
+
+    function renderBackupTab() {
+      const tbody = document.getElementById('backupLogTbody');
+      if (!tbody) return;
+      tbody.innerHTML = demoState.backups.map(b => `
+        <tr>
+          <td class="py-2.5 px-3 font-mono text-xs text-slate-600">${b.time}</td>
+          <td class="py-2.5 px-3 font-bold text-slate-900">${b.branchName}</td>
+          <td class="py-2.5 px-3 text-slate-700">${b.shiftLabel}</td>
+          <td class="py-2.5 px-3">
+            <div class="font-mono text-xs font-bold text-teal-800">${b.file}</div>
+            <div class="font-mono text-[10px] text-slate-400">${b.checksum}</div>
+          </td>
+          <td class="py-2.5 px-3 text-xs font-semibold text-slate-600">${b.storage}</td>
+          <td class="py-2.5 px-3">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">${b.status}</span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function runStepBackupWizard() {
+      const branch = getCurrentBranch();
+      const shift = getActiveShift();
+      const modal = document.getElementById('backupRunnerModalBox');
+      const stepsWrap = document.getElementById('backupRunnerSteps');
+      const bar = document.getElementById('backupRunnerBar');
+      const finishBtn = document.getElementById('finishBackupRunnerBtn');
+
+      document.getElementById('backupRunnerMeta').textContent = `${branch.name} • ${shift.shiftName} (${shift.cashierName})`;
+      finishBtn.disabled = true;
+      bar.style.width = '12%';
+
+      const steps = [
+        '1. Ekspor transaksi shift, batch FEFO & resep cabang',
+        '2. Kompresi arsip (.tar.gz) per cabang & shift',
+        '3. Kalkulasi & verifikasi SHA-256 checksum',
+        '4. Unggah salinan ke VPS & Off-server Cloud'
+      ];
+
+      stepsWrap.innerHTML = steps.map((label, i) => `
+        <div id="stepRow-${i}" class="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 font-semibold">
+          <span>${label}</span>
+          <span id="stepTag-${i}" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">WAIT</span>
+        </div>
+      `).join('');
+
+      modal.classList.remove('hidden');
+
+      steps.forEach((_, i) => {
+        setTimeout(() => {
+          const row = document.getElementById(`stepRow-${i}`);
+          const tag = document.getElementById(`stepTag-${i}`);
+          if (row && tag) {
+            row.className = 'flex items-center justify-between px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-950 font-bold';
+            tag.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white';
+            tag.textContent = 'DONE';
+          }
+          bar.style.width = `${((i + 1) / steps.length) * 100}%`;
+
+          if (i === steps.length - 1) {
+            appendShiftBackupRecord(false);
+            finishBtn.disabled = false;
+            showToast('Backup step-by-step ganti shift selesai', 'success');
+          }
+        }, (i + 1) * 320);
+      });
+    }
+
+    // Reports & FEFO
+    function renderReportTab() {
+      const branchSales = demoState.salesHistory.filter(s => s.branchId === demoState.branchId);
+      const omzet = branchSales.reduce((a, b) => a + b.total, 0);
+      const hppSum = branchSales.reduce((a, b) => a + b.hpp, 0);
+      const margin = Math.max(0, omzet - hppSum);
+
+      const fefoRows = [];
+      demoState.drugs.forEach(d => {
+        const stBranch = d.stockByBranch[demoState.branchId] ?? 0;
+        d.batches.forEach(b => {
+          fefoRows.push({
+            brand: d.brand,
+            batchNo: b.batchNo,
+            expiry: b.expiry,
+            qty: Math.min(b.qty, stBranch),
+            window: b.window
+          });
+        });
+      });
+      fefoRows.sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+      const nearCount = fefoRows.filter(r => r.window !== 'AMAN').length;
+
+      document.getElementById('repOmzetVal').textContent = formatIdr(omzet);
+      document.getElementById('repTxCountVal').textContent = `${branchSales.length} transaksi`;
+      document.getElementById('repMarginVal').textContent = formatIdr(margin);
+      document.getElementById('repFefoCountVal').textContent = `${nearCount} batch`;
+
+      document.getElementById('fefoReportTbody').innerHTML = fefoRows.map(r => {
+        const winBadge = r.window === 'H-30'
+          ? 'bg-rose-100 text-rose-800'
+          : r.window === 'H-60'
+            ? 'bg-amber-100 text-amber-900'
+            : r.window === 'H-90'
+              ? 'bg-sky-100 text-sky-800'
+              : 'bg-emerald-100 text-emerald-800';
+        return `
+          <tr>
+            <td class="py-2.5 px-3 font-extrabold text-slate-900">${r.brand}</td>
+            <td class="py-2.5 px-3 font-mono text-xs">${r.batchNo}</td>
+            <td class="py-2.5 px-3 font-mono text-xs">${r.expiry}</td>
+            <td class="py-2.5 px-3 font-bold">${r.qty}</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black ${winBadge}">${r.window}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('pbfDueList').innerHTML = demoState.pbfInvoices.map(inv => `
+        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-2 text-xs">
+          <div>
+            <div class="font-extrabold text-slate-900">${inv.pbf}</div>
+            <div class="text-slate-500 font-mono">${inv.id} • Jatuh tempo: <strong>${inv.dueDate}</strong></div>
+          </div>
+          <div class="text-right">
+            <div class="font-black text-slate-900">${formatIdr(inv.amount)}</div>
+            <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">${inv.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Full Blueprint Tab
+    function renderBlueprintTab() {
+      const wrap = document.getElementById('blueprintCardsContainer');
+      if (!wrap) return;
+      const q = (document.getElementById('blueprintFilterInput')?.value || '').trim().toLowerCase();
+      const list = BLUEPRINT_MODULES.filter(m =>
+        !q || m.title.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
+      );
+
+      wrap.innerHTML = list.map(m => `
+        <div class="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs flex flex-col justify-between gap-3">
+          <div>
+            <span class="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-slate-900 text-teal-300">${m.code}</span>
+            <h3 class="font-extrabold text-slate-900 text-sm sm:text-base mt-2">${m.title}</h3>
+            <p class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">${m.desc}</p>
+          </div>
+          <div>
+            <button type="button" data-jump-tab="${m.tab}" class="bp-jump-btn text-xs font-extrabold text-teal-700 hover:underline cursor-pointer">
+              Buka Demo Modul &rarr;
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Data Dummy (Demo) JSON & SQL Generator
+    function buildSqlSeedString() {
+      const lines = [
+        '-- APOTEK POS DEMO SEED DATA (NON-PRODUCTION MOCK DATA)',
+        '-- Generated for client/partner/owner preview & demo',
+        ''
+      ];
+
+      demoState.branches.forEach(b => {
+        lines.push(`INSERT INTO branches (id, name, address, apa) VALUES ('${b.id}', '${b.name}', '${b.address}', '${b.apa}');`);
+        b.shifts.forEach(s => {
+          lines.push(`INSERT INTO shift_schedules (id, branch_id, name, cashier, days, start_time, end_time) VALUES ('${s.id}', '${b.id}', '${s.name}', '${s.cashier}', '${s.days}', '${s.start}', '${s.end}');`);
+        });
+      });
+
+      lines.push('');
+      demoState.drugs.forEach(d => {
+        lines.push(`INSERT INTO drugs (id, barcode, brand, generic, category, rack, hpp_per_unit) VALUES ('${d.id}', '${d.barcode}', '${d.brand}', '${d.generic}', '${d.category}', '${d.rack}', ${d.hppPerUnit});`);
+        d.batches.forEach(bat => {
+          lines.push(`INSERT INTO drug_batches (drug_id, batch_no, expiry_date, qty, fefo_window) VALUES ('${d.id}', '${bat.batchNo}', '${bat.expiry}', ${bat.qty}, '${bat.window}');`);
+        });
+      });
+
+      lines.push('');
+      demoState.waDevices.forEach(w => {
+        lines.push(`INSERT INTO wa_devices (id, label, phone, status, pairing_code) VALUES ('${w.id}', '${w.label}', '${w.phone}', '${w.status}', '${w.pairingCode}');`);
+      });
+
+      return lines.join('\n');
+    }
+
+    function getCurrentDumpText() {
+      if (demoState.dumpFormat === 'sql') {
+        return buildSqlSeedString();
+      }
+      return JSON.stringify({
+        meta: DEMO_SEED_DATA.meta,
+        branches: demoState.branches,
+        drugs: demoState.drugs,
+        pbfInvoices: demoState.pbfInvoices,
+        mutations: demoState.mutations,
+        waDevices: demoState.waDevices,
+        backups: demoState.backups
+      }, null, 2);
+    }
+
+    function renderDumpTab() {
+      const viewer = document.getElementById('dumpCodeViewer');
+      const jsonBtn = document.getElementById('viewJsonDumpBtn');
+      const sqlBtn = document.getElementById('viewSqlDumpBtn');
+      if (!viewer) return;
+
+      if (demoState.dumpFormat === 'json') {
+        jsonBtn.className = 'px-3 py-1.5 rounded-lg bg-slate-900 text-white cursor-pointer';
+        sqlBtn.className = 'px-3 py-1.5 rounded-lg text-slate-700 hover:text-slate-950 cursor-pointer';
+      } else {
+        sqlBtn.className = 'px-3 py-1.5 rounded-lg bg-slate-900 text-white cursor-pointer';
+        jsonBtn.className = 'px-3 py-1.5 rounded-lg text-slate-700 hover:text-slate-950 cursor-pointer';
+      }
+
+      viewer.textContent = getCurrentDumpText();
+    }
+
+    function downloadFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast(`File ${filename} berhasil diunduh`, 'success');
+    }
+
+    // Wire up all explicit & delegated event listeners cleanly
+    function bindAllEvents() {
+      // Tab navigation delegation
+      document.getElementById('mainTabBar').addEventListener('click', (e) => {
+        const btn = e.target.closest('.app-tab-btn');
+        if (!btn || !btn.dataset.tab) return;
+        activateTab(btn.dataset.tab);
+      });
+
+      // Top bar branch switcher
+      document.getElementById('topBranchSelect').addEventListener('change', (e) => {
+        demoState.branchId = e.target.value;
+        demoState.manualCashierOverride = null;
+        syncShiftHeader(true);
+        renderPosCatalog();
+        renderShiftMatrix();
+        renderMultiBranchTab();
+        renderReportTab();
+        showToast(`Beralih ke ${getCurrentBranch().name}`);
+      });
+
+      // Client mode buttons
+      document.getElementById('btnModeTablet').addEventListener('click', () => setClientMode('tablet'));
+      document.getElementById('btnModeWindows').addEventListener('click', () => setClientMode('windows'));
+
+      // Simulated shift clock & quick shift buttons
+      document.getElementById('simClockInput').addEventListener('change', (e) => {
+        setSimulatedClock(e.target.value);
+      });
+      document.querySelectorAll('.shift-jump-btn').forEach(btn => {
+        btn.addEventListener('click', () => setSimulatedClock(btn.dataset.jumpTime));
+      });
+
+      // Manual Trigger Ganti Shift & Backup button
+      document.getElementById('triggerShiftBackupBtn').addEventListener('click', () => {
+        const branch = getCurrentBranch();
+        const idx = branch.shifts.findIndex(s => s.id === getActiveShift().shiftId);
+        const nextShift = branch.shifts[(idx + 1) % branch.shifts.length];
+        setSimulatedClock(nextShift.start);
+      });
+
+      // POS Search & Category delegation
+      document.getElementById('posSearchInput').addEventListener('input', (e) => {
+        demoState.searchQuery = e.target.value;
+        renderPosCatalog();
+      });
+      document.getElementById('posCategoryBar').addEventListener('click', (e) => {
+        const btn = e.target.closest('.pos-cat-btn');
+        if (btn && btn.dataset.cat) applyCategorySelection(btn.dataset.cat);
+      });
+
+      // Catalog add-to-cart delegation
+      document.getElementById('posCatalogGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('.add-uom-btn');
+        if (!btn || btn.disabled) return;
+        addUnitItemToCart(btn.dataset.drugId, Number(btn.dataset.uomIdx));
+      });
+
+      // Cart controls delegation
+      document.getElementById('clearCartBtn').addEventListener('click', () => {
+        demoState.cart = [];
+        renderCart();
+        showToast('Keranjang dikosongkan');
+      });
+
+      document.getElementById('rxEnabledCheck').addEventListener('change', (e) => {
+        document.getElementById('rxFieldsWrap').classList.toggle('hidden', !e.target.checked);
+        document.getElementById('rxActiveTag').classList.toggle('hidden', !e.target.checked);
+      });
+
+      document.getElementById('cartListContainer').addEventListener('click', (e) => {
+        const dec = e.target.closest('.cart-dec-btn');
+        const inc = e.target.closest('.cart-inc-btn');
+        const del = e.target.closest('.cart-del-btn');
+        if (dec) changeCartItemQty(dec.dataset.cartDec, -1);
+        if (inc) changeCartItemQty(inc.dataset.cartInc, 1);
+        if (del) {
+          demoState.cart = demoState.cart.filter(x => x.uid !== del.dataset.cartDel);
+          renderCart();
+        }
+      });
+
+      // Racikan modal events
+      document.getElementById('openRacikanBtn').addEventListener('click', openRacikanBuilder);
+      document.getElementById('closeRacikanModalBtn').addEventListener('click', closeRacikanBuilder);
+      document.getElementById('cancelRacikanBtn').addEventListener('click', closeRacikanBuilder);
+      document.getElementById('racikanEmbalaseInput').addEventListener('input', renderRacikanBuilderRows);
+      document.getElementById('addRacikanIngredientBtn').addEventListener('click', () => {
+        const drugId = document.getElementById('racikanIngredientSelect').value;
+        const qty = Math.max(1, Number(document.getElementById('racikanIngredientQty').value || 1));
+        const drug = demoState.drugs.find(d => d.id === drugId);
+        if (!drug) return;
+        const available = drug.stockByBranch[demoState.branchId] ?? 0;
+        const found = demoState.racikanBuilderItems.find(x => x.drugId === drugId);
+        const nextQty = (found ? found.qty : 0) + qty;
+        if (nextQty > available) {
+          showToast(`Stok ${drug.brand} hanya ${available} unit`, 'warning');
+          return;
+        }
+        if (found) found.qty = nextQty;
+        else demoState.racikanBuilderItems.push({ drugId: drug.id, brand: drug.brand, qty, price: drug.units[0].price, hpp: drug.hppPerUnit });
+        renderRacikanBuilderRows();
+      });
+      document.getElementById('racikanDraftRows').addEventListener('click', (e) => {
+        const rm = e.target.closest('.rm-ing-btn');
+        if (!rm) return;
+        demoState.racikanBuilderItems.splice(Number(rm.dataset.rmIng), 1);
+        renderRacikanBuilderRows();
+      });
+      document.getElementById('saveRacikanToCartBtn').addEventListener('click', addRacikanToCart);
+
+      // Payment modal events
+      document.getElementById('openPayModalBtn').addEventListener('click', openPaymentModal);
+      document.getElementById('closePayModalBtn').addEventListener('click', closePaymentModal);
+      document.getElementById('payMethodButtons').addEventListener('click', (e) => {
+        const btn = e.target.closest('.pay-opt-btn');
+        if (btn && btn.dataset.method) choosePaymentMethod(btn.dataset.method);
+      });
+      document.getElementById('cashReceivedField').addEventListener('input', updateCashChange);
+      document.getElementById('cashExactBtn').addEventListener('click', () => {
+        document.getElementById('cashReceivedField').value = getCartTotals().grandTotal;
+        updateCashChange();
+      });
+      document.getElementById('cashAdd50Btn').addEventListener('click', () => {
+        document.getElementById('cashReceivedField').value = Number(document.getElementById('cashReceivedField').value || 0) + 50000;
+        updateCashChange();
+      });
+      document.getElementById('cashAdd100Btn').addEventListener('click', () => {
+        document.getElementById('cashReceivedField').value = Number(document.getElementById('cashReceivedField').value || 0) + 100000;
+        updateCashChange();
+      });
+      document.getElementById('simWebhookPaidBtn').addEventListener('click', () => {
+        demoState.gatewayConfirmed = true;
+        document.getElementById('gatewayStatusTag').textContent = 'PAID';
+        document.getElementById('gatewayStatusTag').className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-200 text-emerald-950';
+        document.getElementById('gwStep3').className = 'py-1.5 px-2 rounded-lg bg-emerald-600 text-white';
+        document.getElementById('gatewayDescText').textContent = 'Webhook terverifikasi: pembayaran telah LUNAS (PAID).';
+        showToast('Webhook gateway PAID terkonfirmasi', 'success');
+      });
+      document.getElementById('confirmPayBtn').addEventListener('click', completeCheckout);
+
+      // Receipt modal events
+      document.getElementById('paper58Btn').addEventListener('click', () => setReceiptSize('58mm'));
+      document.getElementById('paper80Btn').addEventListener('click', () => setReceiptSize('80mm'));
+      document.getElementById('printReceiptNowBtn').addEventListener('click', () => window.print());
+      document.getElementById('closeReceiptModalBtn').addEventListener('click', () => {
+        document.getElementById('receiptModalBox').classList.add('hidden');
+      });
+
+      // Shift schedule form & delete
+      document.getElementById('addShiftScheduleForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const branch = getCurrentBranch();
+        branch.shifts.push({
+          id: `SH-${Date.now().toString().slice(-4)}`,
+          name: document.getElementById('newShiftTitle').value.trim(),
+          cashier: document.getElementById('newShiftCashier').value.trim(),
+          days: document.getElementById('newShiftDays').value.trim() || 'Senin - Minggu',
+          start: document.getElementById('newShiftStart').value,
+          end: document.getElementById('newShiftEnd').value
+        });
+        e.target.reset();
+        syncShiftHeader(false);
+        renderShiftMatrix();
+        showToast('Jadwal shift baru ditambahkan', 'success');
+      });
+      document.getElementById('shiftMatrixTbody').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.del-shift-btn');
+        if (!delBtn) return;
+        const branch = getCurrentBranch();
+        if (branch.shifts.length <= 1) {
+          showToast('Minimal harus ada 1 jadwal shift aktif', 'warning');
+          return;
+        }
+        branch.shifts = branch.shifts.filter(s => s.id !== delBtn.dataset.delShift);
+        syncShiftHeader(false);
+        renderShiftMatrix();
+      });
+
+      // PIN Override modal & keypad
+      document.getElementById('openPinOverrideBtn').addEventListener('click', () => {
+        document.getElementById('overrideCashierField').value = getActiveShift().cashierName;
+        document.getElementById('pinModalBox').classList.remove('hidden');
+      });
+      document.getElementById('closePinModalBtn').addEventListener('click', () => document.getElementById('pinModalBox').classList.add('hidden'));
+      document.getElementById('cancelPinBtn').addEventListener('click', () => document.getElementById('pinModalBox').classList.add('hidden'));
+      document.getElementById('pinPadGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('.pin-digit-btn');
+        if (!btn) return;
+        const inp = document.getElementById('pinCodeField');
+        const d = btn.dataset.digit;
+        if (d === 'CLR') inp.value = '';
+        else if (d === 'DEL') inp.value = inp.value.slice(0, -1);
+        else inp.value = (inp.value + d).slice(0, 8);
+      });
+      document.getElementById('savePinOverrideBtn').addEventListener('click', () => {
+        const pin = document.getElementById('pinCodeField').value.trim();
+        const newCashier = document.getElementById('overrideCashierField').value.trim();
+        if (pin !== '1234') {
+          showToast('PIN salah! Gunakan PIN demo: 1234', 'error');
+          return;
+        }
+        if (!newCashier) {
+          showToast('Masukkan nama kasir pengganti', 'warning');
+          return;
+        }
+        demoState.manualCashierOverride = newCashier;
+        demoState.pinOverrideLogs.unshift({
+          time: demoState.simulatedTime,
+          branch: getCurrentBranch().name,
+          cashier: newCashier,
+          note: 'Override PIN Supervisor/Owner'
+        });
+        document.getElementById('pinModalBox').classList.add('hidden');
+        syncShiftHeader(true);
+        renderShiftMatrix();
+        showToast(`Kasir di-override ke ${newCashier}`, 'success');
+      });
+
+      // Multi-branch stock mutation
+      document.getElementById('mutasiFromSelect').addEventListener('change', renderMultiBranchTab);
+      document.getElementById('mutasiStockForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fromId = document.getElementById('mutasiFromSelect').value;
+        const toId = document.getElementById('mutasiToSelect').value;
+        const drugId = document.getElementById('mutasiDrugSelect').value;
+        const qty = Math.max(1, Number(document.getElementById('mutasiQtyInput').value || 1));
+
+        if (fromId === toId) {
+          showToast('Cabang asal dan tujuan tidak boleh sama', 'warning');
+          return;
+        }
+        const drug = demoState.drugs.find(d => d.id === drugId);
+        const fromStock = drug.stockByBranch[fromId] ?? 0;
+        if (qty > fromStock) {
+          showToast(`Stok ${drug.brand} di cabang asal hanya ${fromStock}`, 'error');
+          return;
+        }
+
+        drug.stockByBranch[fromId] = fromStock - qty;
+        drug.stockByBranch[toId] = (drug.stockByBranch[toId] ?? 0) + qty;
+
+        const fromName = demoState.branches.find(b => b.id === fromId).name;
+        const toName = demoState.branches.find(b => b.id === toId).name;
+        demoState.mutations.unshift({
+          id: `MUT-${Date.now().toString().slice(-4)}`,
+          from: fromName,
+          to: toName,
+          drug: drug.brand,
+          qty,
+          time: demoState.simulatedTime,
+          status: 'Diterima'
+        });
+
+        renderMultiBranchTab();
+        renderPosCatalog();
+        showToast(`Mutasi ${qty} ${drug.brand} (${fromName} → ${toName}) berhasil`, 'success');
+      });
+
+      // WA Baileys modal & actions
+      document.getElementById('openAddWaModalBtn').addEventListener('click', () => {
+        document.getElementById('waNewLabelInput').value = '';
+        document.getElementById('waNewPhoneInput').value = '';
+        document.getElementById('waGeneratedCode').textContent = 'APTK-' + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('waPairingStateLabel').textContent = 'PAIRING • Menunggu Scan QR / Pairing Code';
+        document.getElementById('waAddModalBox').classList.remove('hidden');
+      });
+      document.getElementById('closeWaAddModalBtn').addEventListener('click', () => document.getElementById('waAddModalBox').classList.add('hidden'));
+      document.getElementById('cancelWaAddBtn').addEventListener('click', () => document.getElementById('waAddModalBox').classList.add('hidden'));
+      document.getElementById('confirmWaPairBtn').addEventListener('click', () => {
+        const label = document.getElementById('waNewLabelInput').value.trim() || 'Perangkat WA Apotek';
+        const phone = document.getElementById('waNewPhoneInput').value.trim() || '6281299887766';
+        const code = document.getElementById('waGeneratedCode').textContent;
+
+        demoState.waDevices.push({
+          id: `WA-${Date.now().toString().slice(-4)}`,
+          label,
+          phone,
+          status: 'CONNECTED',
+          pairingCode: code
+        });
+        demoState.waLogs.unshift({
+          time: demoState.simulatedTime,
+          target: phone,
+          text: `Perangkat "${label}" terhubung via Baileys.`,
+          status: 'CONNECTED'
+        });
+        document.getElementById('waAddModalBox').classList.add('hidden');
+        renderWaTab();
+        showToast(`Perangkat WA "${label}" berstatus CONNECTED`, 'success');
+      });
+
+      document.getElementById('waDevicesCards').addEventListener('click', (e) => {
+        const rec = e.target.closest('.wa-reconnect-btn');
+        const out = e.target.closest('.wa-logout-btn');
+        if (rec) {
+          const dev = demoState.waDevices.find(d => d.id === rec.dataset.waReconnect);
+          if (dev) {
+            dev.status = 'CONNECTED';
+            renderWaTab();
+            showToast(`${dev.label} di-reconnect (CONNECTED)`, 'success');
+          }
+        }
+        if (out) {
+          const dev = demoState.waDevices.find(d => d.id === out.dataset.waLogout);
+          if (dev) {
+            dev.status = 'LOGGED_OUT';
+            renderWaTab();
+            showToast(`${dev.label} di-logout (LOGGED_OUT)`, 'warning');
+          }
+        }
+      });
+
+      document.getElementById('sendWaTestForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const activeDev = demoState.waDevices.find(d => d.status === 'CONNECTED');
+        if (!activeDev) {
+          showToast('Hubungkan minimal 1 perangkat WA (CONNECTED) dulu', 'warning');
+          return;
+        }
+        const target = document.getElementById('waTargetPhoneInput').value.trim();
+        const text = document.getElementById('waMessageTextInput').value.trim();
+        demoState.waLogs.unshift({
+          time: demoState.simulatedTime,
+          target,
+          text,
+          status: 'SENT'
+        });
+        renderWaTab();
+        showToast(`Pesan uji terkirim ke ${target}`, 'success');
+      });
+
+      // Backup runner modal
+      document.getElementById('runBackupWizardBtn').addEventListener('click', runStepBackupWizard);
+      document.getElementById('finishBackupRunnerBtn').addEventListener('click', () => {
+        document.getElementById('backupRunnerModalBox').classList.add('hidden');
+      });
+
+      // Blueprint search & tab jumps
+      document.getElementById('blueprintFilterInput').addEventListener('input', renderBlueprintTab);
+      document.getElementById('blueprintCardsContainer').addEventListener('click', (e) => {
+        const btn = e.target.closest('.bp-jump-btn');
+        if (btn && btn.dataset.jumpTab) activateTab(btn.dataset.jumpTab);
+      });
+
+      // Data Dummy (Demo) JSON/SQL switch, copy & download
+      document.getElementById('viewJsonDumpBtn').addEventListener('click', () => {
+        demoState.dumpFormat = 'json';
+        renderDumpTab();
+      });
+      document.getElementById('viewSqlDumpBtn').addEventListener('click', () => {
+        demoState.dumpFormat = 'sql';
+        renderDumpTab();
+      });
+      document.getElementById('copyDumpBtn').addEventListener('click', () => {
+        const text = getCurrentDumpText();
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast('Data dummy berhasil disalin ke clipboard', 'success');
+        } catch (err) {
+          showToast('Gagal menyalin data', 'error');
+        }
+        ta.remove();
+      });
+      document.getElementById('downloadJsonDumpBtn').addEventListener('click', () => {
+        demoState.dumpFormat = 'json';
+        renderDumpTab();
+        downloadFile('apotek_pos_demo_seed.json', getCurrentDumpText(), 'application/json');
+      });
+      document.getElementById('downloadSqlDumpBtn').addEventListener('click', () => {
+        demoState.dumpFormat = 'sql';
+        renderDumpTab();
+        downloadFile('apotek_pos_demo_seed.sql', getCurrentDumpText(), 'application/sql');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      bindAllEvents();
+      syncShiftHeader(false);
+      applyCategorySelection('Semua');
+      renderCart();
+      activateTab('kasir');
+    });
+  </script>
+</body>
+</html>
